@@ -21,7 +21,17 @@
     <div class="ambient ambient-2"></div>
 
     <main class="wrap">
-      <section class="hero card">
+      <header class="topbar card">
+        <a class="brand" href="#top">ZHOU / AI JOURNEY</a>
+        <nav class="nav">
+          <a href="#journey">旅程</a>
+          <a href="#building">正在构建</a>
+          <a href="#beliefs">我的想法</a>
+          <a href="#next">下一步</a>
+        </nav>
+      </header>
+
+      <section id="top" class="hero card">
         <div class="hero-copy">
           <p class="eyebrow">MY AI JOURNEY</p>
           <h1>我在学习，如何和 AI 一起创造未来。</h1>
@@ -30,7 +40,7 @@
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#journey">看看我的旅程</a>
-            <a class="button secondary" href="#vision">我想去哪里</a>
+            <a class="button secondary" href="#next">我接下来想做什么</a>
           </div>
         </div>
 
@@ -115,7 +125,7 @@
         </div>
       </section>
 
-      <section class="feature-grid">
+      <section id="building" class="feature-grid">
         <article class="card mini-card">
           <p class="section-tag">NOW</p>
           <h3>我正在做什么</h3>
@@ -136,14 +146,60 @@
           </ul>
         </article>
 
-        <article id="vision" class="card mini-card vision-card">
-          <p class="section-tag">VISION</p>
-          <h3>我想去哪里</h3>
+        <article class="card mini-card">
+          <p class="section-tag">BUILDING</p>
+          <h3>我想做出来的东西</h3>
+          <ul>
+            <li>更聪明的个人工作流</li>
+            <li>可以真正落地的小型 AI 产品</li>
+            <li>能长期积累的数字化系统</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="beliefs" class="belief-grid">
+        <article class="card belief-card">
+          <p class="section-tag">BELIEF 01</p>
+          <h3>AI 不只是聊天</h3>
           <p>
-            我希望以后别人看到这个主页时，不只是看到一句“我对 AI 感兴趣”，而是能看到我一路走来的作品、系统、实验和思考。
+            对我来说，AI 真正有价值的地方不是回答一个问题，而是持续参与一个任务，最后帮助我把事情做成。
+          </p>
+        </article>
+
+        <article class="card belief-card">
+          <p class="section-tag">BELIEF 02</p>
+          <h3>系统比灵感更重要</h3>
+          <p>
+            偶尔一次高光没那么重要，重要的是能不能把经验沉淀成系统，让下一次做得更快、更稳、更好。
+          </p>
+        </article>
+
+        <article class="card belief-card">
+          <p class="section-tag">BELIEF 03</p>
+          <h3>未来属于会协作的人</h3>
+          <p>
+            我越来越相信，未来不是“人 vs AI”，而是“会与 AI 协作的人”会跑得更快、更远。
           </p>
         </article>
       </section>
+
+      <section id="next" class="card section-card next-card">
+        <p class="section-tag">NEXT</p>
+        <h2>这只是开始</h2>
+        <p>
+          这个主页后面还会继续加入我的真实项目、实验记录、阶段性总结，以及我做出来的 AI 网站与工具。它会慢慢从一页介绍，变成一条可见的成长轨迹。
+        </p>
+        <div class="next-pills">
+          <span>项目展示</span>
+          <span>实验日志</span>
+          <span>产品想法</span>
+          <span>个人系统</span>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>Built step by step, with curiosity, code, and AI.</p>
+      </footer>
     </main>
   </body>
 </html>

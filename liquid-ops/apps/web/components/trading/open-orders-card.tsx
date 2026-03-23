@@ -8,13 +8,17 @@ function formatCurrency(value: number) {
 
 export function OpenOrdersCard({
   orders,
+  symbol,
   onCancel,
   cancelingOrderId,
 }: {
   orders: OrderRecord[];
+  symbol: string;
   onCancel: (orderId: string) => Promise<void>;
   cancelingOrderId?: string | null;
 }) {
+  const reservedMargin = orders.reduce((sum, order) => sum + (order.reservedMargin ?? 0), 0);
+
   return (
     <div className="card">
       <div className="row" style={{ marginBottom: 12 }}>
@@ -24,6 +28,13 @@ export function OpenOrdersCard({
         </div>
         <div className="muted" style={{ fontSize: 12 }}>{orders.length} live</div>
       </div>
+
+      {orders.length > 0 ? (
+        <div className="detail-card compact" style={{ marginBottom: 12 }}>
+          <div className="row"><span className="field-label">{symbol} staging summary</span><strong>{formatCurrency(reservedMargin)} reserved</strong></div>
+          <div className="muted" style={{ fontSize: 12 }}>These orders are already tied into the account summary and will free margin immediately when canceled or filled.</div>
+        </div>
+      ) : null}
 
       <div className="grid" style={{ gap: 10 }}>
         {orders.map((order) => (
@@ -39,7 +50,7 @@ export function OpenOrdersCard({
                   {order.size} contracts • trigger {typeof order.requestedPrice === 'number' ? formatCurrency(order.requestedPrice) : 'market'} • {order.leverage.toFixed(1)}x
                 </div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  Submitted {new Date(order.createdAt).toLocaleTimeString()}
+                  Submitted {new Date(order.createdAt).toLocaleTimeString()} • reserved {formatCurrency(order.reservedMargin ?? 0)}
                 </div>
               </div>
               <button
@@ -53,7 +64,17 @@ export function OpenOrdersCard({
             </div>
           </div>
         ))}
-        {orders.length === 0 ? <div className="muted">No resting orders. Limit and stop-market orders will appear here until triggered.</div> : null}
+        {orders.length === 0 ? (
+          <div className="detail-card compact">
+            <strong>No resting {symbol} orders yet.</strong>
+            <div className="muted" style={{ fontSize: 12 }}>Try one of these to make the book feel alive immediately:</div>
+            <ul className="dense-list muted" style={{ fontSize: 12, margin: 0 }}>
+              <li>Stage a pullback limit below mark to buy into weakness</li>
+              <li>Place a stop-market above local highs to catch breakout continuation</li>
+              <li>Use the size presets in Order Entry to ladder risk without typing numbers</li>
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );

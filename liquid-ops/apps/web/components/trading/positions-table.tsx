@@ -4,7 +4,7 @@ function formatCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })}`;
 }
 
-export function PositionsTable({ positions }: { positions: Position[] }) {
+export function PositionsTable({ positions, selectedSymbol }: { positions: Position[]; selectedSymbol?: string }) {
   return (
     <div className="card">
       <div className="row" style={{ marginBottom: 12 }}>
@@ -33,7 +33,7 @@ export function PositionsTable({ positions }: { positions: Position[] }) {
             const marginUsed = position.notional / Math.max(position.leverage, 1);
             const roe = marginUsed > 0 ? (position.unrealizedPnl / marginUsed) * 100 : 0;
             return (
-              <tr key={position.id}>
+              <tr key={position.id} className={position.marketSymbol === selectedSymbol ? 'selected-row' : undefined}>
                 <td>
                   <strong>{position.marketSymbol}</strong>
                   <div className="muted" style={{ fontSize: 12 }}>{new Date(position.updatedAt).toLocaleTimeString()}</div>
@@ -58,7 +58,7 @@ export function PositionsTable({ positions }: { positions: Position[] }) {
           })}
           {positions.length === 0 ? (
             <tr>
-              <td colSpan={9} className="muted">No open positions.</td>
+              <td colSpan={9} className="muted">No open positions. Use the seeded BTC order flow to start building exposure.</td>
             </tr>
           ) : null}
         </tbody>

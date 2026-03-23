@@ -1,6 +1,6 @@
 'use client';
 
-import type { Market, Position, SimulatedOrderRequest } from '@liquid-ops/types';
+import type { AccountSnapshot, Market, OrderRecord, Position, SimulatedOrderRequest } from '@liquid-ops/types';
 import { useEffect, useMemo, useState } from 'react';
 
 const defaultLeverage = 5;
@@ -14,13 +14,19 @@ function formatCurrency(value: number) {
 
 export function OrderTicket({
   market,
+  account,
   position,
+  marketOpenOrders,
+  recentOrders,
   freeCollateral,
   onSubmit,
   isSubmitting,
 }: {
   market: Market;
+  account: AccountSnapshot;
   position?: Position | null;
+  marketOpenOrders: OrderRecord[];
+  recentOrders: OrderRecord[];
   freeCollateral: number;
   onSubmit: (payload: SimulatedOrderRequest) => Promise<void>;
   isSubmitting: boolean;
@@ -56,6 +62,15 @@ export function OrderTicket({
     if (!position) return draft.side === 'buy' ? 'Open / add long' : 'Open / add short';
     if (position.side === 'long') return draft.side === 'buy' ? 'Add to long' : 'Reduce / flip long';
     return draft.side === 'sell' ? 'Add to short' : 'Reduce / flip short';
+  }, [draft.side, position]);
+  const selectedReservedMargin = useMemo(() => marketOpenOrders.reduce((sum, order) => sum + (order.reservedMargin ?? 0), 0), [marketOpenOrders]);
+  const latestOrder = recentOrders[0] ?? null;
+  const orderPlan = useMemo(() => {
+    if (!position) return draft.side === 'buy' ? 'First touch opens BTC risk with long bias.' : 'First touch opens BTC risk with short bias.';
+    if (position.side === 'long' && draft.side === 'buy') return 'This order scales into the current long and increases directional exposure.';
+    if (position.side === 'long' && draft.side === 'sell') return 'This order starts taking long risk off or fully flips the book if oversized.';
+    if (position.side === 'short' && draft.side === 'sell') return 'This order leans harder into the current short.';
+    return 'This order buys back short exposure and can flip the position if large enough.';
   }, [draft.side, position]);
 
   function updateSize(percent: number) {
@@ -198,6 +213,21 @@ export function OrderTicket({
           ) : (
             <div className="muted" style={{ fontSize: 12 }}>No open exposure in this market.</div>
           )}
+        </div>
+
+        <div className="detail-card compact">
+          <div className="row"><span className="field-label">Account linkage</span><strong>{marketOpenOrders.length} live order{marketOpenOrders.length === 1 ? '' : 's'}</strong></div>
+          <div className="row muted" style={{ fontSize: 12 }}><span>{formatCurrency(account.freeCollateral)} free collateral</span><span>{formatCurrency(selectedReservedMargin)} reserved here</span></div>
+          <div className="row muted" style={{ fontSize: 12 }}><span>{formatCurrency(account.usedMargin)} used margin</span><span>{formatCurrency(account.reservedOrderMargin)} total resting</span></div>
+          <div style={{ fontSize: 12 }} className="muted">{orderPlan}</div>
+          {latestOrder ? (
+            <div className="row" style={{ fontSize: 12 }}>
+              <span className={latestOrder.realizedPnl && latestOrder.realizedPnl < 0 ? 'tone-negative' : 'tone-positive'}>
+                Last fill {latestOrder.side.toUpperCase()} {latestOrder.size} @ {formatCurrency(latestOrder.fillPrice)}
+              </span>
+              <span className="muted">{new Date(latestOrder.createdAt).toLocaleTimeString()}</span>
+            </div>
+          ) : null}
         </div>
 
         {error ? <div className="card error-banner" style={{ padding: 12 }}>{error}</div> : null}

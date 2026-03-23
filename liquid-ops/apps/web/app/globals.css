@@ -218,6 +218,11 @@ button, input, select { font: inherit; }
   border-radius: 999px 999px 4px 4px;
   background: linear-gradient(180deg, rgba(77,163,255,0.35), rgba(77,163,255,0.95));
 }
+.dense-list {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
 
 @media (max-width: 1200px) {
   .grid-terminal { grid-template-columns: 1fr; }

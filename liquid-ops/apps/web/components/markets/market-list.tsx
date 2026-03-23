@@ -1,5 +1,9 @@
 import type { Market } from '@liquid-ops/types';
 
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })}`;
+}
+
 export function MarketList({
   markets,
   selectedSymbol,
@@ -12,16 +16,20 @@ export function MarketList({
   return (
     <div className="card">
       <div className="row" style={{ marginBottom: 12 }}>
-        <h3>Markets</h3>
-        <div className="muted">Live simulated feed</div>
+        <div>
+          <h3>Markets</h3>
+          <div className="muted" style={{ fontSize: 12 }}>Live simulated feed • perpetual majors</div>
+        </div>
+        <div className="muted" style={{ fontSize: 12 }}>{markets.length} instruments</div>
       </div>
       <table className="table">
         <thead>
           <tr>
             <th>Symbol</th>
-            <th>Mark</th>
+            <th>Mark / Index</th>
             <th>24h</th>
             <th>Funding</th>
+            <th>OI</th>
           </tr>
         </thead>
         <tbody>
@@ -36,11 +44,15 @@ export function MarketList({
                 <strong>{market.symbol}</strong>
                 <div className="muted" style={{ fontSize: 12 }}>{market.baseAsset}/{market.quoteAsset}</div>
               </td>
-              <td>${market.markPrice.toLocaleString()}</td>
-              <td style={{ color: market.change24h >= 0 ? '#7ef0b2' : '#ff9eaa' }}>
+              <td>
+                <div>{formatCurrency(market.markPrice)}</div>
+                <div className="muted" style={{ fontSize: 12 }}>Idx {formatCurrency(market.indexPrice)}</div>
+              </td>
+              <td className={market.change24h >= 0 ? 'tone-positive' : 'tone-negative'}>
                 {market.change24h >= 0 ? '+' : ''}{market.change24h}%
               </td>
               <td>{(market.fundingRate * 100).toFixed(3)}%</td>
+              <td>{formatCurrency(market.openInterest)}</td>
             </tr>
           ))}
         </tbody>

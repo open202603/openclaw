@@ -1,0 +1,33 @@
+import type { Position } from '@liquid-ops/types';
+
+export function PositionsTable({ positions }: { positions: Position[] }) {
+  return (
+    <div className="card">
+      <h3>Open Positions</h3>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Market</th>
+            <th>Side</th>
+            <th>Size</th>
+            <th>Entry</th>
+            <th>PnL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {positions.map((position) => (
+            <tr key={position.id}>
+              <td>{position.marketSymbol}</td>
+              <td><span className={`pill ${position.side === 'long' ? 'buy' : 'sell'}`}>{position.side}</span></td>
+              <td>{position.size}</td>
+              <td>${position.entryPrice.toLocaleString()}</td>
+              <td style={{ color: position.unrealizedPnl >= 0 ? '#7ef0b2' : '#ff9eaa' }}>
+                {position.unrealizedPnl >= 0 ? '+' : ''}${position.unrealizedPnl.toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

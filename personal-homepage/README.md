@@ -6,20 +6,10 @@
 
 - `index.html`：主页结构
 - `style.css`：页面样式
-- `Caddyfile`：线上部署配置（HTTP / 80 端口）
-- `DEPLOY-CADDY.md`：Caddy 部署说明
-
-## 当前线上访问
-
-当前线上通过 **Caddy + 80 端口** 提供访问：
-
-```text
-http://34.158.58.187/
-```
 
 ## 本地预览
 
-如果你只是本地临时预览，仍然可以在项目目录下运行：
+如果你只是本地临时预览，可以在项目目录下运行：
 
 ```bash
 python3 -m http.server 8080
@@ -31,22 +21,16 @@ python3 -m http.server 8080
 http://127.0.0.1:8080
 ```
 
-## 线上部署目录
+## 部署说明
 
-线上 Caddy 当前读取的目录是：
+线上部署配置（如 Caddy、Nginx、IP、SSL、服务器目录等）建议只保留在本机或私有文档里，不放进公开仓库。
 
-```text
-/var/www/personal-homepage
-```
+如果你要公开这个仓库，建议遵守这几条：
 
-如果你改了工作区源码，需要再同步到线上目录，例如：
-
-```bash
-sudo cp -r /home/zhoushuoji/.openclaw/workspace/personal-homepage/* /var/www/personal-homepage/
-sudo chown -R caddy:caddy /var/www/personal-homepage
-sudo chmod -R 755 /var/www/personal-homepage
-sudo systemctl restart caddy
-```
+- 不提交服务器公网 IP
+- 不提交 `/var/www/...` 这类服务器路径
+- 不提交 Caddy / Nginx 的真实线上配置
+- 不提交任何 API key、token、密码或 `.env`
 
 ## 下一步建议
 

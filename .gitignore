@@ -1,0 +1,4 @@
+personal-homepage/Caddyfile
+personal-homepage/DEPLOY-CADDY.md
+.env
+*.env

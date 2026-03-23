@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import type { Candle, Market, OrderBookSnapshot } from '@liquid-ops/types';
 
 type MarketState = Market & {
@@ -51,8 +52,22 @@ const seedMarkets: MarketState[] = [
 
 const round = (value: number, decimals = 2) => Number(value.toFixed(decimals));
 
-export class MarketDataService {
+export class MarketDataService extends EventEmitter {
   private readonly markets = new Map(seedMarkets.map((market) => [market.symbol, { ...market }]));
+  private readonly timer: NodeJS.Timeout;
+
+  constructor() {
+    super();
+    this.timer = setInterval(() => {
+      for (const symbol of this.markets.keys()) {
+        const market = this.tickMarket(symbol);
+        if (market) {
+          this.emit('market.tick', market.symbol, this.toPublicMarket(market));
+        }
+      }
+    }, 1200);
+    this.timer.unref();
+  }
 
   private tickMarket(symbol: string) {
     const market = this.markets.get(symbol);
@@ -74,19 +89,18 @@ export class MarketDataService {
     return market;
   }
 
-  private asMarket(symbol: string): Market | null {
-    const market = this.tickMarket(symbol);
-    if (!market) return null;
+  private toPublicMarket(market: MarketState): Market {
     const { basePrice: _basePrice, ...publicMarket } = market;
     return publicMarket;
   }
 
   listMarkets() {
-    return Array.from(this.markets.keys()).map((symbol) => this.asMarket(symbol)!).sort((a, b) => b.volume24h - a.volume24h);
+    return Array.from(this.markets.values()).map((market) => this.toPublicMarket(market)).sort((a, b) => b.volume24h - a.volume24h);
   }
 
   getMarket(symbol: string) {
-    return this.asMarket(symbol.toUpperCase());
+    const market = this.markets.get(symbol.toUpperCase());
+    return market ? this.toPublicMarket(market) : null;
   }
 
   getOrderBook(symbol: string): OrderBookSnapshot | null {

@@ -5,3 +5,4 @@ dist
 pnpm-lock.yaml
 coverage
 *.tsbuildinfo
+apps/api/data/

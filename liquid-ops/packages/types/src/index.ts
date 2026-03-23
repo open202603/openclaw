@@ -45,6 +45,7 @@ export type Position = {
   leverage: number;
   notional: number;
   liquidationPrice: number;
+  updatedAt: string;
 };
 
 export type AccountSnapshot = {
@@ -78,17 +79,29 @@ export type OrderRecord = {
   fillPrice: number;
   status: 'filled';
   createdAt: string;
+  realizedPnl?: number;
+  closedSize?: number;
+};
+
+export type PortfolioHistoryPoint = {
+  timestamp: string;
+  equity: number;
+  freeCollateral: number;
+  usedMargin: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
 };
 
 export type PortfolioSnapshot = {
   account: AccountSnapshot;
   positions: Position[];
   recentOrders: OrderRecord[];
+  history: PortfolioHistoryPoint[];
 };
 
 export type PlaceOrderResponse = {
   order: OrderRecord;
-  position: Position;
+  position: Position | null;
   portfolio: PortfolioSnapshot;
   marketSnapshot: Market | null;
 };

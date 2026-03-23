@@ -15,7 +15,9 @@ export const mockAccount: AccountSnapshot = {
   unrealizedPnl: 1920,
 };
 
+const now = new Date().toISOString();
+
 export const mockPositions: Position[] = [
-  { id: 'pos_1', marketSymbol: 'BTC-PERP', side: 'long', size: 0.85, entryPrice: 83120, markPrice: 84214, unrealizedPnl: 929.9, leverage: 5, notional: 71581.9, liquidationPrice: 66496 },
-  { id: 'pos_2', marketSymbol: 'ETH-PERP', side: 'short', size: 12, entryPrice: 4720, markPrice: 4682, unrealizedPnl: 456, leverage: 3, notional: 56184, liquidationPrice: 6293.33 },
+  { id: 'pos_1', marketSymbol: 'BTC-PERP', side: 'long', size: 0.85, entryPrice: 83120, markPrice: 84214, unrealizedPnl: 929.9, leverage: 5, notional: 71581.9, liquidationPrice: 66496, updatedAt: now },
+  { id: 'pos_2', marketSymbol: 'ETH-PERP', side: 'short', size: 12, entryPrice: 4720, markPrice: 4682, unrealizedPnl: 456, leverage: 3, notional: 56184, liquidationPrice: 6293.33, updatedAt: now },
 ];

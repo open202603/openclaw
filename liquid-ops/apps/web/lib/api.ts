@@ -1,4 +1,11 @@
-import type { Candle, OrderBookSnapshot, PlaceOrderResponse, PortfolioSnapshot, SimulatedOrderRequest } from '@liquid-ops/types';
+import type {
+  Candle,
+  OrderBookSnapshot,
+  PlaceOrderResponse,
+  PortfolioHistoryPoint,
+  PortfolioSnapshot,
+  SimulatedOrderRequest,
+} from '@liquid-ops/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -8,6 +15,16 @@ async function getJson<T>(path: string): Promise<T> {
     throw new Error(`API request failed: ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+export function getApiUrl() {
+  return API_URL;
+}
+
+export function getWsUrl(path: string) {
+  const url = new URL(path, API_URL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.toString();
 }
 
 export async function fetchMarkets() {
@@ -24,6 +41,10 @@ export async function fetchCandles(symbol: string, points = 24) {
 
 export async function fetchPortfolio(accountId: string) {
   return getJson<PortfolioSnapshot>(`/portfolio/${accountId}`);
+}
+
+export async function fetchPortfolioHistory(accountId: string) {
+  return getJson<{ history: PortfolioHistoryPoint[] }>(`/portfolio/${accountId}/history`);
 }
 
 export async function placeOrder(payload: SimulatedOrderRequest) {

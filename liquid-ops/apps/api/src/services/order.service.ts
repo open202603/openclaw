@@ -14,6 +14,7 @@ export class OrderService {
     const { market } = this.riskEngine.validateOrder(
       order.accountId,
       order.marketSymbol,
+      order.side,
       order.size,
       order.leverage,
       order.price,

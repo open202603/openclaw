@@ -110,6 +110,17 @@ button, input, select { font: inherit; }
   border-radius: 14px;
   background: rgba(10, 21, 34, 0.6);
 }
+.history-list { display: grid; gap: 10px; }
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(10, 21, 34, 0.55);
+}
 .muted { color: var(--muted); }
 .success-banner { border-color: rgba(38, 208, 124, 0.35); color: #8ff0bd; }
 .error-banner { border-color: rgba(255, 94, 114, 0.35); color: #ffb4be; }

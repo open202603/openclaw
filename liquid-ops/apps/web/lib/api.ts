@@ -61,3 +61,16 @@ export async function placeOrder(payload: SimulatedOrderRequest) {
 
   return body as PlaceOrderResponse;
 }
+
+export async function cancelOrder(accountId: string, orderId: string) {
+  const response = await fetch(`${API_URL}/orders/${orderId}?accountId=${encodeURIComponent(accountId)}`, {
+    method: 'DELETE',
+  });
+
+  const body = (await response.json()) as PlaceOrderResponse | { message?: string };
+  if (!response.ok) {
+    throw new Error('message' in body && body.message ? body.message : 'Cancel request failed');
+  }
+
+  return body as PlaceOrderResponse;
+}

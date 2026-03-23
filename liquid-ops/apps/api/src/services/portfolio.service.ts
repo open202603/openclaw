@@ -51,6 +51,26 @@ export class PortfolioService extends EventEmitter {
     });
   }
 
+  private computeOrderReservedMargin(order: OrderRecord, positions: Position[]) {
+    if (order.status !== 'open') return 0;
+
+    const referencePrice = order.type === 'stop-market'
+      ? (order.triggerPrice ?? order.requestedPrice)
+      : (order.requestedPrice ?? this.marketData.getMarket(order.marketSymbol)?.markPrice ?? 0);
+
+    if (!referencePrice || referencePrice <= 0) {
+      return round(order.reservedMargin ?? 0);
+    }
+
+    const current = positions.find((position) => position.marketSymbol === order.marketSymbol) ?? null;
+    const incomingSide: Position['side'] = order.side === 'buy' ? 'long' : 'short';
+    const marginBearingSize = current && current.side !== incomingSide
+      ? Math.max(0, order.size - current.size)
+      : order.size;
+
+    return round((marginBearingSize * referencePrice) / Math.max(order.leverage, 1));
+  }
+
   private recordHistory(accountId: string, snapshot: PortfolioSnapshot) {
     this.persistence.insertHistoryPoint({
       accountId,
@@ -67,7 +87,10 @@ export class PortfolioService extends EventEmitter {
     const account = this.ensureAccount(accountId);
     const positions = this.hydratePositions(accountId);
     const unrealizedPnl = round(positions.reduce((sum, position) => sum + position.unrealizedPnl, 0));
-    const usedMargin = round(positions.reduce((sum, position) => sum + position.notional / position.leverage, 0));
+    const positionMargin = round(positions.reduce((sum, position) => sum + position.notional / position.leverage, 0));
+    const openOrders = this.getOpenOrders(accountId, undefined, positions);
+    const reservedOrderMargin = round(openOrders.reduce((sum, order) => sum + this.computeOrderReservedMargin(order, positions), 0));
+    const usedMargin = round(positionMargin + reservedOrderMargin);
     const equity = round(account.startingEquity + account.realizedPnl + unrealizedPnl);
     const freeCollateral = round(equity - usedMargin);
 
@@ -77,11 +100,14 @@ export class PortfolioService extends EventEmitter {
         equity,
         freeCollateral,
         usedMargin,
+        positionMargin,
+        reservedOrderMargin,
         realizedPnl: round(account.realizedPnl),
         unrealizedPnl,
       },
       positions,
       recentOrders: this.getRecentOrders(accountId),
+      openOrders,
       history: this.persistence.getHistory(accountId, 40),
     };
 
@@ -123,6 +149,15 @@ export class PortfolioService extends EventEmitter {
     return this.persistence.getRecentOrders(accountId, 20);
   }
 
+  getOpenOrders(accountId: string, marketSymbol?: string, hydratedPositions?: Position[]): OrderRecord[] {
+    this.ensureAccount(accountId);
+    const positions = hydratedPositions ?? this.hydratePositions(accountId);
+    return this.persistence.getOpenOrders(accountId, marketSymbol, 20).map((order) => ({
+      ...order,
+      reservedMargin: this.computeOrderReservedMargin(order, positions),
+    }));
+  }
+
   getPortfolioSnapshot(accountId: string): PortfolioSnapshot {
     return this.refreshAccount(accountId, { recordHistory: true });
   }
@@ -155,7 +190,7 @@ export class PortfolioService extends EventEmitter {
         leverage: order.leverage,
         notional: round(order.size * order.fillPrice),
         liquidationPrice: this.computeLiquidationPrice(incomingSide, order.fillPrice, order.leverage),
-        updatedAt: order.createdAt,
+        updatedAt: order.filledAt ?? order.createdAt,
       };
     } else if (current.side === incomingSide) {
       const nextSize = round(current.size + order.size, 6);
@@ -166,7 +201,7 @@ export class PortfolioService extends EventEmitter {
         size: nextSize,
         entryPrice: weightedEntry,
         leverage: weightedLeverage,
-        updatedAt: order.createdAt,
+        updatedAt: order.filledAt ?? order.createdAt,
       };
     } else {
       closedSize = Math.min(current.size, order.size);
@@ -177,7 +212,7 @@ export class PortfolioService extends EventEmitter {
         nextPosition = {
           ...current,
           size: round(current.size - order.size, 6),
-          updatedAt: order.createdAt,
+          updatedAt: order.filledAt ?? order.createdAt,
         };
       } else if (order.size > current.size) {
         nextPosition = {
@@ -191,7 +226,7 @@ export class PortfolioService extends EventEmitter {
           leverage: order.leverage,
           notional: round((order.size - current.size) * order.fillPrice),
           liquidationPrice: this.computeLiquidationPrice(incomingSide, order.fillPrice, order.leverage),
-          updatedAt: order.createdAt,
+          updatedAt: order.filledAt ?? order.createdAt,
         };
       }
     }
@@ -202,10 +237,13 @@ export class PortfolioService extends EventEmitter {
 
     const persistedOrder: OrderRecord = {
       ...order,
+      status: 'filled',
+      reservedMargin: 0,
+      updatedAt: order.filledAt ?? new Date().toISOString(),
       realizedPnl: realizedPnl || undefined,
       closedSize: closedSize || undefined,
     };
-    this.persistence.insertOrder(persistedOrder);
+    this.persistence.updateOrder(persistedOrder);
 
     const snapshot = this.refreshAccount(order.accountId, { emit: true, recordHistory: true });
     return snapshot.positions.find((position) => position.marketSymbol === order.marketSymbol) ?? null;

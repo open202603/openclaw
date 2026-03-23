@@ -11,6 +11,10 @@ const placeOrderSchema = z.object({
   leverage: z.number().min(1).max(10),
 });
 
+const cancelOrderQuerySchema = z.object({
+  accountId: z.string().min(1),
+});
+
 export function registerOrderRoutes(app: FastifyInstance) {
   app.post('/orders', async (request, reply) => {
     try {
@@ -19,6 +23,17 @@ export function registerOrderRoutes(app: FastifyInstance) {
     } catch (error) {
       request.log.warn({ error }, 'order rejected');
       return reply.code(400).send({ message: error instanceof Error ? error.message : 'Invalid order request' });
+    }
+  });
+
+  app.delete('/orders/:orderId', async (request, reply) => {
+    try {
+      const { orderId } = request.params as { orderId: string };
+      const { accountId } = cancelOrderQuerySchema.parse(request.query);
+      return app.ctx.orderService.cancelOrder(accountId, orderId);
+    } catch (error) {
+      request.log.warn({ error }, 'cancel rejected');
+      return reply.code(400).send({ message: error instanceof Error ? error.message : 'Invalid cancel request' });
     }
   });
 }

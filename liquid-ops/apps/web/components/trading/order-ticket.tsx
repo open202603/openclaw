@@ -28,7 +28,7 @@ export function OrderTicket({
   const [draft, setDraft] = useState<OrderDraft>({
     side: 'buy',
     type: 'market',
-    size: 0.25,
+    size: market.symbol === 'BTC-PERP' ? 0.05 : market.symbol === 'ETH-PERP' ? 0.5 : 10,
     price: market.markPrice,
     leverage: defaultLeverage,
   });
@@ -37,6 +37,7 @@ export function OrderTicket({
   useEffect(() => {
     setDraft((current) => ({
       ...current,
+      size: market.symbol === 'BTC-PERP' ? Math.min(current.size, 0.25) || 0.05 : current.size,
       price: market.markPrice,
     }));
   }, [market.markPrice, market.symbol]);
@@ -50,11 +51,16 @@ export function OrderTicket({
   }, [draft.side, draft.leverage, referencePrice]);
   const maxSizeApprox = useMemo(() => (freeCollateral * Math.max(draft.leverage, 1)) / Math.max(referencePrice, 1), [draft.leverage, freeCollateral, referencePrice]);
   const marginUsagePct = useMemo(() => (estimatedMargin / Math.max(freeCollateral, 1)) * 100, [estimatedMargin, freeCollateral]);
-  const intentLabel = draft.side === 'buy' ? 'Open / add long' : 'Open / add short';
   const currentExposureSide = position?.side === 'long' ? 'Long' : position?.side === 'short' ? 'Short' : 'Flat';
+  const intentLabel = useMemo(() => {
+    if (!position) return draft.side === 'buy' ? 'Open / add long' : 'Open / add short';
+    if (position.side === 'long') return draft.side === 'buy' ? 'Add to long' : 'Reduce / flip long';
+    return draft.side === 'sell' ? 'Add to short' : 'Reduce / flip short';
+  }, [draft.side, position]);
 
   function updateSize(percent: number) {
-    const sized = Number((maxSizeApprox * (percent / 100)).toFixed(market.symbol === 'SOL-PERP' ? 1 : 3));
+    const decimals = market.symbol === 'SOL-PERP' ? 1 : 3;
+    const sized = Number((maxSizeApprox * (percent / 100)).toFixed(decimals));
     setDraft((current) => ({ ...current, size: Math.max(sized, 0) }));
   }
 
@@ -90,7 +96,7 @@ export function OrderTicket({
       <div className="row" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div>
           <h3>Order Entry</h3>
-          <div className="muted" style={{ fontSize: 12 }}>{market.symbol} • simulated matching • 10x max leverage</div>
+          <div className="muted" style={{ fontSize: 12 }}>{market.symbol} • market fills now, limit/stop rest until triggered</div>
         </div>
         <div className={`pill ${draft.side === 'buy' ? 'buy' : 'sell'}`}>{intentLabel}</div>
       </div>
@@ -196,7 +202,7 @@ export function OrderTicket({
 
         {error ? <div className="card error-banner" style={{ padding: 12 }}>{error}</div> : null}
         <button type="button" className={`button ${draft.side === 'buy' ? 'buy' : 'sell'}`} onClick={submit} disabled={isSubmitting}>
-          {isSubmitting ? 'Submitting…' : `${draft.side === 'buy' ? 'Buy / Long' : 'Sell / Short'} ${market.symbol}`}
+          {isSubmitting ? 'Submitting…' : `${draft.type === 'market' ? 'Execute' : 'Place'} ${draft.side === 'buy' ? 'Buy / Long' : 'Sell / Short'} ${market.symbol}`}
         </button>
       </form>
     </div>

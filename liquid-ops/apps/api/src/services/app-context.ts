@@ -9,9 +9,10 @@ export function buildAppContext() {
   const marketData = new MarketDataService();
   const portfolioService = new PortfolioService(marketData, persistence);
   const riskEngine = new RiskEngineService(portfolioService, marketData);
-  const orderService = new OrderService(marketData, portfolioService, riskEngine);
+  const orderService = new OrderService(marketData, portfolioService, riskEngine, persistence);
 
-  marketData.on('market.tick', () => {
+  marketData.on('market.tick', (symbol: string) => {
+    orderService.processTriggeredOrders(symbol);
     portfolioService.refreshAllAccounts({ emit: true, recordHistory: true });
   });
 

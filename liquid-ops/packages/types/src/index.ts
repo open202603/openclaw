@@ -53,6 +53,8 @@ export type AccountSnapshot = {
   equity: number;
   freeCollateral: number;
   usedMargin: number;
+  positionMargin: number;
+  reservedOrderMargin: number;
   realizedPnl: number;
   unrealizedPnl: number;
 };
@@ -67,6 +69,8 @@ export type SimulatedOrderRequest = {
   leverage: number;
 };
 
+export type OrderStatus = 'open' | 'filled' | 'canceled';
+
 export type OrderRecord = {
   orderId: string;
   accountId: string;
@@ -76,9 +80,14 @@ export type OrderRecord = {
   size: number;
   leverage: number;
   requestedPrice?: number;
+  triggerPrice?: number;
+  reservedMargin?: number;
   fillPrice: number;
-  status: 'filled';
+  status: OrderStatus;
   createdAt: string;
+  updatedAt?: string;
+  filledAt?: string;
+  canceledAt?: string;
   realizedPnl?: number;
   closedSize?: number;
 };
@@ -96,6 +105,7 @@ export type PortfolioSnapshot = {
   account: AccountSnapshot;
   positions: Position[];
   recentOrders: OrderRecord[];
+  openOrders: OrderRecord[];
   history: PortfolioHistoryPoint[];
 };
 

@@ -13,6 +13,8 @@ export const mockAccount: AccountSnapshot = {
   usedMargin: 15790,
   realizedPnl: 2840,
   unrealizedPnl: 1920,
+  positionMargin: 13240,
+  reservedOrderMargin: 2550,
 };
 
 const now = new Date().toISOString();

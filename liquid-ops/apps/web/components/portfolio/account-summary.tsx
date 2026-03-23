@@ -1,10 +1,10 @@
-import type { AccountSnapshot, Position } from '@liquid-ops/types';
+import type { AccountSnapshot, OrderRecord, Position } from '@liquid-ops/types';
 
 function formatCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })}`;
 }
 
-export function AccountSummary({ account, positions }: { account: AccountSnapshot; positions: Position[] }) {
+export function AccountSummary({ account, positions, openOrders }: { account: AccountSnapshot; positions: Position[]; openOrders: OrderRecord[] }) {
   const grossExposure = positions.reduce((sum, position) => sum + position.notional, 0);
   const largestPosition = positions.reduce((largest, position) => (!largest || position.notional > largest.notional ? position : largest), positions[0]);
   const marginRatio = account.equity > 0 ? (account.usedMargin / account.equity) * 100 : 0;
@@ -27,7 +27,7 @@ export function AccountSummary({ account, positions }: { account: AccountSnapsho
         <div>
           <div className="muted" style={{ fontSize: 12 }}>DEMO ACCOUNT</div>
           <h3 style={{ marginBottom: 4 }}>Portfolio Snapshot</h3>
-          <div className="muted" style={{ fontSize: 12 }}>{account.accountId} • {positions.length} open market{positions.length === 1 ? '' : 's'}</div>
+          <div className="muted" style={{ fontSize: 12 }}>{account.accountId} • {positions.length} open market{positions.length === 1 ? '' : 's'} • {openOrders.length} resting order{openOrders.length === 1 ? '' : 's'}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className={riskTone} style={{ fontWeight: 700 }}>{riskLabel} risk</div>

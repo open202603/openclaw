@@ -121,6 +121,8 @@ export class PersistenceService {
       );
 
       CREATE INDEX IF NOT EXISTS idx_orders_account_created_at ON orders(account_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_orders_account_status_created_at ON orders(account_id, status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_orders_symbol_status_created_at ON orders(market_symbol, status, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_history_account_timestamp ON equity_history(account_id, timestamp DESC);
     `);
   }
@@ -228,10 +230,101 @@ export class PersistenceService {
         closed_size as closedSize,
         created_at as createdAt
       FROM orders
-      WHERE account_id = ?
+      WHERE account_id = ? AND status != 'open'
       ORDER BY created_at DESC
       LIMIT ?
     `).all(accountId, limit) as OrderRecord[];
+  }
+
+  getOpenOrders(accountId: string, marketSymbol?: string, limit = 20): OrderRecord[] {
+    if (marketSymbol) {
+      return this.db.prepare(`
+        SELECT
+          order_id as orderId,
+          account_id as accountId,
+          market_symbol as marketSymbol,
+          side,
+          type,
+          size,
+          leverage,
+          requested_price as requestedPrice,
+          fill_price as fillPrice,
+          status,
+          realized_pnl as realizedPnl,
+          closed_size as closedSize,
+          created_at as createdAt
+        FROM orders
+        WHERE account_id = ? AND market_symbol = ? AND status = 'open'
+        ORDER BY created_at ASC
+        LIMIT ?
+      `).all(accountId, marketSymbol, limit) as OrderRecord[];
+    }
+
+    return this.db.prepare(`
+      SELECT
+        order_id as orderId,
+        account_id as accountId,
+        market_symbol as marketSymbol,
+        side,
+        type,
+        size,
+        leverage,
+        requested_price as requestedPrice,
+        fill_price as fillPrice,
+        status,
+        realized_pnl as realizedPnl,
+        closed_size as closedSize,
+        created_at as createdAt
+      FROM orders
+      WHERE account_id = ? AND status = 'open'
+      ORDER BY created_at ASC
+      LIMIT ?
+    `).all(accountId, limit) as OrderRecord[];
+  }
+
+  getOpenOrdersBySymbol(marketSymbol: string): OrderRecord[] {
+    return this.db.prepare(`
+      SELECT
+        order_id as orderId,
+        account_id as accountId,
+        market_symbol as marketSymbol,
+        side,
+        type,
+        size,
+        leverage,
+        requested_price as requestedPrice,
+        fill_price as fillPrice,
+        status,
+        realized_pnl as realizedPnl,
+        closed_size as closedSize,
+        created_at as createdAt
+      FROM orders
+      WHERE market_symbol = ? AND status = 'open'
+      ORDER BY created_at ASC
+    `).all(marketSymbol) as OrderRecord[];
+  }
+
+  getOrder(orderId: string): OrderRecord | null {
+    const row = this.db.prepare(`
+      SELECT
+        order_id as orderId,
+        account_id as accountId,
+        market_symbol as marketSymbol,
+        side,
+        type,
+        size,
+        leverage,
+        requested_price as requestedPrice,
+        fill_price as fillPrice,
+        status,
+        realized_pnl as realizedPnl,
+        closed_size as closedSize,
+        created_at as createdAt
+      FROM orders
+      WHERE order_id = ?
+    `).get(orderId) as OrderRecord | undefined;
+
+    return row ?? null;
   }
 
   insertOrder(order: OrderRecord) {
@@ -242,6 +335,10 @@ export class PersistenceService {
         @orderId, @accountId, @marketSymbol, @side, @type, @size, @leverage, @requestedPrice, @fillPrice, @status, @realizedPnl, @closedSize, @createdAt
       )
     `).run(order);
+  }
+
+  updateOrder(order: OrderRecord) {
+    this.insertOrder(order);
   }
 
   getHistory(accountId: string, limit = 40): PortfolioHistoryPoint[] {

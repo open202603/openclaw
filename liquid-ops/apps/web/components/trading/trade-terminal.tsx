@@ -2,10 +2,11 @@
 
 import type { Candle, Market, OrderBookSnapshot, PortfolioSnapshot, Position, SimulatedOrderRequest } from '@liquid-ops/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchCandles, fetchMarkets, fetchPortfolio, getWsUrl, placeOrder } from '../../lib/api';
+import { cancelOrder, fetchCandles, fetchMarkets, fetchPortfolio, getWsUrl, placeOrder } from '../../lib/api';
 import { MarketList } from '../markets/market-list';
 import { AccountSummary } from '../portfolio/account-summary';
 import { PortfolioHistoryCard } from '../portfolio/portfolio-history-card';
+import { OpenOrdersCard } from './open-orders-card';
 import { OrderBookCard } from './order-book-card';
 import { OrderTicket } from './order-ticket';
 import { PositionsTable } from './positions-table';
@@ -37,10 +38,12 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
 
   const selectedMarket = useMemo(() => markets.find((market) => market.symbol === selectedSymbol) ?? markets[0] ?? null, [markets, selectedSymbol]);
   const selectedPosition = useMemo<Position | null>(() => portfolio?.positions.find((position) => position.marketSymbol === selectedSymbol) ?? null, [portfolio?.positions, selectedSymbol]);
   const orderFlow = useMemo(() => (portfolio?.recentOrders ?? []).slice(0, 8), [portfolio?.recentOrders]);
+  const selectedOpenOrders = useMemo(() => (portfolio?.openOrders ?? []).filter((order) => order.marketSymbol === selectedSymbol), [portfolio?.openOrders, selectedSymbol]);
 
   const loadBaseData = useCallback(async () => {
     const [marketResponse, portfolioResponse, candleResponse] = await Promise.all([
@@ -59,9 +62,13 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
   }, [loadBaseData]);
 
   useEffect(() => {
-    fetchCandles(selectedSymbol)
-      .then((response) => setCandles(response.candles))
-      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Failed to refresh candles'));
+    const interval = setInterval(() => {
+      fetchCandles(selectedSymbol)
+        .then((response) => setCandles(response.candles))
+        .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Failed to refresh candles'));
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [selectedSymbol]);
 
   useEffect(() => {
@@ -74,7 +81,11 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
         const nextMarket = payload.market;
         setMarkets((current) => {
           const next = current.filter((market) => market.symbol !== nextMarket.symbol);
-          return [...next, nextMarket].sort((a, b) => b.volume24h - a.volume24h);
+          return [...next, nextMarket].sort((a, b) => {
+            if (a.symbol === 'BTC-PERP') return -1;
+            if (b.symbol === 'BTC-PERP') return 1;
+            return b.volume24h - a.volume24h;
+          });
         });
       }
       setOrderBook(payload.orderBook);
@@ -104,7 +115,11 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
     try {
       const result = await placeOrder(payload);
       setPortfolio(result.portfolio);
-      setMessage(`${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} filled at ${formatCurrency(result.order.fillPrice)}${result.order.realizedPnl ? ` • realized ${result.order.realizedPnl >= 0 ? '+' : ''}${formatCurrency(result.order.realizedPnl)}` : ''}`);
+      setMessage(
+        result.order.status === 'open'
+          ? `${result.order.type} ${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} armed at ${formatCurrency(result.order.requestedPrice ?? 0)}`
+          : `${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} filled at ${formatCurrency(result.order.fillPrice)}${result.order.realizedPnl ? ` • realized ${result.order.realizedPnl >= 0 ? '+' : ''}${formatCurrency(result.order.realizedPnl)}` : ''}`,
+      );
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Order request failed');
     } finally {
@@ -112,9 +127,23 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
     }
   }
 
+  async function handleCancelOrder(orderId: string) {
+    setCancelingOrderId(orderId);
+    setError(null);
+    try {
+      const result = await cancelOrder(accountId, orderId);
+      setPortfolio(result.portfolio);
+      setMessage(`Canceled ${result.order.type} ${result.order.side.toUpperCase()} ${result.order.marketSymbol}`);
+    } catch (cancelError) {
+      setError(cancelError instanceof Error ? cancelError.message : 'Cancel request failed');
+    } finally {
+      setCancelingOrderId(null);
+    }
+  }
+
   return (
     <div className="grid" style={{ gap: 16 }}>
-      {portfolio ? <AccountSummary account={portfolio.account} positions={portfolio.positions} /> : null}
+      {portfolio ? <AccountSummary account={portfolio.account} positions={portfolio.positions} openOrders={portfolio.openOrders} /> : null}
       {selectedMarket ? (
         <div className="card terminal-banner">
           <div className="row terminal-banner-row">
@@ -156,6 +185,7 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
               isSubmitting={isSubmitting}
             />
           ) : null}
+          <OpenOrdersCard orders={selectedOpenOrders} onCancel={handleCancelOrder} cancelingOrderId={cancelingOrderId} />
           <div className="card">
             <div className="row" style={{ marginBottom: 12 }}>
               <div>
@@ -188,7 +218,7 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
                   </div>
                 </div>
               ))}
-              {orderFlow.length === 0 ? <div className="muted">No recent order activity yet.</div> : null}
+              {orderFlow.length === 0 ? <div className="muted">No recent filled activity yet.</div> : null}
             </div>
           </div>
         </div>

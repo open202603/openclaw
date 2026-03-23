@@ -15,6 +15,8 @@ import { PriceChartCard } from './price-chart-card';
 
 const accountId = 'acc_demo_001';
 
+type ViewMode = 'trade' | 'portfolio' | 'markets';
+
 type MarketSocketPayload = {
   type: 'market.snapshot';
   market: Market | null;
@@ -37,7 +39,13 @@ function formatCompactCurrency(value: number) {
   }).format(value);
 }
 
-export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMarketSymbol?: string }) {
+export function TradeTerminal({
+  initialMarketSymbol = 'BTC-PERP',
+  view = 'trade',
+}: {
+  initialMarketSymbol?: string;
+  view?: ViewMode;
+}) {
   const [markets, setMarkets] = useState<Market[]>(mockMarkets);
   const [portfolio, setPortfolio] = useState<PortfolioSnapshot | null>(mockPortfolio);
   const [orderBook, setOrderBook] = useState<OrderBookSnapshot | null>(mockOrderBooks[initialMarketSymbol] ?? mockOrderBooks['BTC-PERP']);
@@ -179,9 +187,9 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
     const marketFillCount = orderFlow.filter((order) => order.marketSymbol === selectedMarket.symbol).length;
     const thesis = selectedMarket.symbol === 'BTC-PERP'
       ? selectedMarket.change24h >= 0
-        ? 'BTC has trend, depth, and active resting orders already staged — it feels immediately tradable.'
-        : 'BTC is pulling back into liquidity. Fade or reclaim setups are both visible from the start.'
-      : `${selectedMarket.symbol} is live, but BTC remains the flagship book with the strongest context and best seeded activity.`;
+        ? 'Trend is intact, depth is seeded, and BTC opens with real execution context instead of an empty demo shell.'
+        : 'Pullback structure is visible immediately, making both reclaim and fade setups legible on load.'
+      : `${selectedMarket.symbol} stays connected to the rest of the desk with live depth, fills, and account state.`;
 
     return {
       spread,
@@ -217,176 +225,295 @@ export function TradeTerminal({ initialMarketSymbol = 'BTC-PERP' }: { initialMar
     };
   }, [portfolio, selectedMarket, selectedOpenOrders, selectedOrderFlow, selectedPosition]);
 
-  return (
-    <div className="grid" style={{ gap: 16 }}>
-      {portfolio ? <AccountSummary account={portfolio.account} positions={portfolio.positions} openOrders={portfolio.openOrders} /> : null}
-      {selectedMarket ? (
-        <div className="card terminal-banner">
-          <div className="row terminal-banner-row">
+  const pageMeta = useMemo(() => {
+    if (view === 'portfolio') {
+      return {
+        title: 'Portfolio command center',
+        subtitle: 'Account-first layout with exposure, equity, and execution state kept in one place.',
+        badge: 'Risk view',
+      };
+    }
+    if (view === 'markets') {
+      return {
+        title: 'Markets monitor',
+        subtitle: 'Cross-market scan with flagship depth and execution details still attached.',
+        badge: 'Scanner view',
+      };
+    }
+    return {
+      title: 'Trade execution terminal',
+      subtitle: 'Chart, book, order ticket, staged orders, fills, and account impact all visible at once.',
+      badge: 'Trade view',
+    };
+  }, [view]);
+
+  const breadthStats = useMemo(() => {
+    const positive = markets.filter((market) => market.change24h >= 0).length;
+    const negative = markets.length - positive;
+    const leader = [...markets].sort((a, b) => b.volume24h - a.volume24h)[0] ?? null;
+    const avgFunding = markets.length ? markets.reduce((sum, market) => sum + market.fundingRate, 0) / markets.length : 0;
+    return { positive, negative, leader, avgFunding };
+  }, [markets]);
+
+  const marketPanel = (
+    <div className="grid">
+      <MarketList markets={markets} selectedSymbol={selectedMarket?.symbol} onSelect={setSelectedSymbol} />
+      <OrderBookCard orderBook={orderBook} />
+    </div>
+  );
+
+  const recentFillsCard = (
+    <div className="card">
+      <div className="row" style={{ marginBottom: 12 }}>
+        <div>
+          <h3>Recent Fills</h3>
+          <div className="muted" style={{ fontSize: 12 }}>Latest trading activity with realized PnL context</div>
+        </div>
+        <div className="muted" style={{ fontSize: 12 }}>{orderFlow.length} entries</div>
+      </div>
+      <div className="grid" style={{ gap: 10 }}>
+        {orderFlow.map((order) => (
+          <div key={order.orderId} className="row order-row">
             <div>
-              <div className="muted terminal-label">ACTIVE MARKET</div>
-              <h3 style={{ marginBottom: 4 }}>{selectedMarket.symbol}</h3>
-              <div className="muted" style={{ fontSize: 12 }}>
-                {selectedMarket.baseAsset}/{selectedMarket.quoteAsset} • funding {(selectedMarket.fundingRate * 100).toFixed(3)}% • 24h volume {formatCurrency(selectedMarket.volume24h)}
+              <div className="row" style={{ justifyContent: 'flex-start', gap: 8 }}>
+                <strong>{order.marketSymbol}</strong>
+                <span className={`pill ${order.side === 'buy' ? 'buy' : 'sell'}`}>{order.side}</span>
               </div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                {order.type} • {order.size} contracts • {new Date(order.createdAt).toLocaleTimeString()}
+              </div>
+              {order.closedSize ? <div className="muted" style={{ fontSize: 12 }}>Closed {order.closedSize} contracts</div> : null}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{formatCurrency(selectedMarket.markPrice)}</div>
-              <div className={selectedMarket.change24h >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 13 }}>
-                {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h}% today
-              </div>
+              <div>{formatCurrency(order.fillPrice)}</div>
+              <div className="muted" style={{ fontSize: 12 }}>{order.leverage.toFixed(1)}x leverage</div>
+              {typeof order.realizedPnl === 'number' ? (
+                <div className={order.realizedPnl >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 12 }}>
+                  {order.realizedPnl >= 0 ? '+' : ''}{formatCurrency(order.realizedPnl)} realized
+                </div>
+              ) : null}
             </div>
           </div>
+        ))}
+        {orderFlow.length === 0 ? <div className="muted">No recent filled activity yet.</div> : null}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="grid" style={{ gap: 16 }}>
+      <div className="card terminal-banner">
+        <div className="row terminal-banner-row">
+          <div>
+            <div className="eyebrow">{pageMeta.badge}</div>
+            <h2 style={{ marginBottom: 6 }}>{pageMeta.title}</h2>
+            <div className="muted" style={{ maxWidth: 820, fontSize: 13 }}>{pageMeta.subtitle}</div>
+          </div>
+          <div className="toolbar-pills">
+            <div className="chip">Depth linked</div>
+            <div className="chip">Portfolio linked</div>
+            <div className="chip">Orders live</div>
+          </div>
         </div>
-      ) : null}
+
+        {selectedMarket && selectedMarketStats ? (
+          <>
+            <div className="row" style={{ marginTop: 18, alignItems: 'flex-end' }}>
+              <div>
+                <div className="eyebrow">Active contract</div>
+                <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', marginTop: 4 }}>{selectedMarket.symbol}</div>
+                <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                  {selectedMarket.baseAsset}/{selectedMarket.quoteAsset} • funding {(selectedMarket.fundingRate * 100).toFixed(3)}% • OI {formatCompactCurrency(selectedMarket.openInterest)}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 32, fontWeight: 800 }}>{formatCurrency(selectedMarket.markPrice)}</div>
+                <div className={selectedMarket.change24h >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 13 }}>
+                  {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h}% 24h • basis {selectedMarketStats.basis >= 0 ? '+' : ''}{formatCurrency(selectedMarketStats.basis)}
+                </div>
+              </div>
+            </div>
+
+            <div className="market-strip">
+              <div className="mini-stat">
+                <div className="field-label">Trade pulse</div>
+                <strong>{selectedMarketStats.thesis}</strong>
+              </div>
+              <div className="mini-stat">
+                <div className="field-label">Spread</div>
+                <strong>{selectedMarketStats.spread.toFixed(selectedMarket.symbol === 'BTC-PERP' ? 0 : 2)}</strong>
+                <div className="muted" style={{ fontSize: 12 }}>{selectedMarketStats.spreadBps.toFixed(2)} bps</div>
+              </div>
+              <div className="mini-stat">
+                <div className="field-label">24h range location</div>
+                <strong>{selectedMarketStats.rangeProgress.toFixed(0)}%</strong>
+                <div className="muted" style={{ fontSize: 12 }}>{formatCurrency(selectedMarketStats.distanceToHigh)} from high</div>
+              </div>
+              <div className="mini-stat">
+                <div className="field-label">Book skew</div>
+                <strong>{selectedMarketStats.depthSkew.toFixed(0)}% bid</strong>
+                <div className="muted" style={{ fontSize: 12 }}>{formatCompactCurrency(selectedMarketStats.bidDepth)} bid vs {formatCompactCurrency(selectedMarketStats.askDepth)} ask</div>
+              </div>
+              <div className="mini-stat">
+                <div className="field-label">Top of book</div>
+                <strong>{selectedMarketStats.bidTop ? `${formatCurrency(selectedMarketStats.bidTop.price)} / ${formatCurrency(selectedMarketStats.askTop?.price ?? selectedMarket.markPrice)}` : 'Waiting...'}</strong>
+                <div className="muted" style={{ fontSize: 12 }}>{selectedMarketStats.marketFillCount} recent fill(s) in this market</div>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {portfolio ? <AccountSummary account={portfolio.account} positions={portfolio.positions} openOrders={portfolio.openOrders} /> : null}
       {message ? <div className="card success-banner">{message}</div> : null}
       {error ? <div className="card error-banner">{error}</div> : null}
-      <div className="grid grid-terminal">
-        <div className="grid">
-          <MarketList markets={markets} selectedSymbol={selectedMarket?.symbol} onSelect={setSelectedSymbol} />
-          <OrderBookCard orderBook={orderBook} />
+
+      {view === 'portfolio' ? (
+        <div className="grid page-columns-3">
+          <div className="grid">
+            <PositionsTable positions={portfolio?.positions ?? []} selectedSymbol={selectedSymbol} />
+            <PortfolioHistoryCard history={portfolio?.history ?? []} />
+          </div>
+          {marketPanel}
+          <div className="grid">
+            {selectedMarket && portfolio && executionSummary ? (
+              <OrderTicket
+                market={selectedMarket}
+                account={portfolio.account}
+                position={selectedPosition}
+                marketOpenOrders={selectedOpenOrders}
+                recentOrders={selectedOrderFlow}
+                freeCollateral={portfolio.account.freeCollateral}
+                onSubmit={handleOrder}
+                isSubmitting={isSubmitting}
+              />
+            ) : null}
+            <OpenOrdersCard orders={selectedOpenOrders} symbol={selectedSymbol} onCancel={handleCancelOrder} cancelingOrderId={cancelingOrderId} />
+            {recentFillsCard}
+          </div>
         </div>
-        <div className="grid">
-          {selectedMarket && selectedMarketStats ? (
+      ) : view === 'markets' ? (
+        <div className="grid page-columns-2">
+          <div className="grid">
+            {marketPanel}
             <div className="card">
-              <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
+              <div className="row" style={{ marginBottom: 12 }}>
                 <div>
-                  <h3>{selectedMarket.symbol === 'BTC-PERP' ? 'BTC Trade Pulse' : `${selectedMarket.baseAsset} Trade Pulse`}</h3>
-                  <div className="muted" style={{ fontSize: 12 }}>{selectedMarketStats.thesis}</div>
+                  <h3>Market Breadth</h3>
+                  <div className="muted" style={{ fontSize: 12 }}>Cross-market scan so the page feels like a market monitor, not the trade page repeated.</div>
                 </div>
-                <div className="pill buy">{selectedMarketStats.depthSkew >= 50 ? 'Bid-led book' : 'Ask-led book'}</div>
+                <div className="chip">Scanner</div>
               </div>
               <div className="detail-grid detail-grid-4">
                 <div className="detail-card compact">
-                  <span className="field-label">Spread / Basis</span>
-                  <strong>{selectedMarketStats.spread.toFixed(selectedMarket.symbol === 'BTC-PERP' ? 0 : 2)} • {selectedMarketStats.spreadBps.toFixed(2)} bps</strong>
-                  <span className={selectedMarketStats.basis >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 12 }}>
-                    Basis {selectedMarketStats.basis >= 0 ? '+' : ''}{formatCurrency(selectedMarketStats.basis)}
-                  </span>
+                  <span className="field-label">Advancers</span>
+                  <strong>{breadthStats.positive}</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>{breadthStats.negative} declining</span>
                 </div>
                 <div className="detail-card compact">
-                  <span className="field-label">24h Range Location</span>
-                  <strong>{selectedMarketStats.rangeProgress.toFixed(0)}%</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {formatCurrency(selectedMarketStats.distanceToHigh)} below high • {formatCurrency(selectedMarketStats.distanceToLow)} above low
-                  </span>
+                  <span className="field-label">Volume leader</span>
+                  <strong>{breadthStats.leader?.symbol ?? '—'}</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>{breadthStats.leader ? formatCurrency(breadthStats.leader.volume24h) : 'No data'}</span>
                 </div>
                 <div className="detail-card compact">
-                  <span className="field-label">Top of Book</span>
-                  <strong>{selectedMarketStats.bidTop ? `${selectedMarketStats.bidTop.size} bid / ${selectedMarketStats.askTop?.size ?? '—'} ask` : 'Waiting...'}</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {selectedMarketStats.bidTop ? `${formatCurrency(selectedMarketStats.bidTop.price)} x ${formatCurrency(selectedMarketStats.askTop?.price ?? selectedMarket.markPrice)}` : 'No live quote yet'}
-                  </span>
+                  <span className="field-label">Average funding</span>
+                  <strong>{(breadthStats.avgFunding * 100).toFixed(3)}%</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>Majors bias snapshot</span>
                 </div>
                 <div className="detail-card compact">
-                  <span className="field-label">Positioning</span>
-                  <strong>{formatCompactCurrency(selectedMarket.openInterest)} OI</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {selectedMarketStats.marketFillCount} recent fill{selectedMarketStats.marketFillCount === 1 ? '' : 's'} • depth skew {selectedMarketStats.depthSkew.toFixed(0)}%
-                  </span>
+                  <span className="field-label">Focused market</span>
+                  <strong>{selectedSymbol}</strong>
+                  <span className="muted" style={{ fontSize: 12 }}>Linked to chart, depth, and order ticket</span>
                 </div>
               </div>
-            </div>
-          ) : null}
-          <PriceChartCard candles={candles} />
-          <PositionsTable positions={portfolio?.positions ?? []} selectedSymbol={selectedSymbol} />
-          <PortfolioHistoryCard history={portfolio?.history ?? []} />
-        </div>
-        <div className="grid">
-          {selectedMarket && portfolio && executionSummary ? (
-            <OrderTicket
-              market={selectedMarket}
-              account={portfolio.account}
-              position={selectedPosition}
-              marketOpenOrders={selectedOpenOrders}
-              recentOrders={selectedOrderFlow}
-              freeCollateral={portfolio.account.freeCollateral}
-              onSubmit={handleOrder}
-              isSubmitting={isSubmitting}
-            />
-          ) : null}
-          {selectedMarket && portfolio && executionSummary ? (
-            <div className="card">
-              <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
-                <div>
-                  <h3>Execution Link</h3>
-                  <div className="muted" style={{ fontSize: 12 }}>Order entry, live orders, fills, and account usage tied to {selectedMarket.symbol}</div>
-                </div>
-                <div className="muted" style={{ fontSize: 12 }}>{executionSummary.liveOrders} live / {selectedOrderFlow.length} recent</div>
-              </div>
-              <div className="detail-grid detail-grid-3">
-                <div className="detail-card compact">
-                  <span className="field-label">Selected exposure</span>
-                  <strong>{selectedPosition ? formatCurrency(selectedPosition.notional) : 'Flat'}</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {selectedPosition ? `${selectedPosition.side} • ${selectedPosition.size} ${selectedMarket.baseAsset}` : `No ${selectedMarket.symbol} position open yet`}
-                  </span>
-                </div>
-                <div className="detail-card compact">
-                  <span className="field-label">Reserved for resting orders</span>
-                  <strong>{formatCurrency(executionSummary.selectedReservedMargin)}</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {executionSummary.liveOrders} staged order{executionSummary.liveOrders === 1 ? '' : 's'} • {formatCurrency(portfolio.account.reservedOrderMargin)} total reserved
-                  </span>
-                </div>
-                <div className="detail-card compact">
-                  <span className="field-label">Last fill</span>
-                  <strong>{executionSummary.recentFill ? `${executionSummary.recentFill.side.toUpperCase()} ${executionSummary.recentFill.size}` : 'No recent fill'}</strong>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {executionSummary.recentFill ? `${formatCurrency(executionSummary.recentFill.fillPrice)} • ${new Date(executionSummary.recentFill.createdAt).toLocaleTimeString()}` : 'Use market or limit orders to seed activity'}
-                  </span>
-                </div>
-              </div>
-              <div className="row detail-card" style={{ marginTop: 12 }}>
-                <div>
-                  <div className="field-label">Why the page feels connected now</div>
-                  <strong>{selectedPosition ? `${executionSummary.selectedExposureShare.toFixed(0)}% of current gross exposure is in ${selectedMarket.symbol}` : `${selectedMarket.symbol} is ready for a first trade`}</strong>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div className="field-label">Free collateral</div>
-                  <strong>{formatCurrency(portfolio.account.freeCollateral)}</strong>
-                </div>
-              </div>
-            </div>
-          ) : null}
-          <OpenOrdersCard orders={selectedOpenOrders} symbol={selectedSymbol} onCancel={handleCancelOrder} cancelingOrderId={cancelingOrderId} />
-          <div className="card">
-            <div className="row" style={{ marginBottom: 12 }}>
-              <div>
-                <h3>Recent Fills</h3>
-                <div className="muted" style={{ fontSize: 12 }}>Latest trading activity with realized PnL context</div>
-              </div>
-              <div className="muted" style={{ fontSize: 12 }}>{orderFlow.length} entries</div>
-            </div>
-            <div className="grid" style={{ gap: 10 }}>
-              {orderFlow.map((order) => (
-                <div key={order.orderId} className="row order-row">
-                  <div>
-                    <div className="row" style={{ justifyContent: 'flex-start', gap: 8 }}>
-                      <strong>{order.marketSymbol}</strong>
-                      <span className={`pill ${order.side === 'buy' ? 'buy' : 'sell'}`}>{order.side}</span>
-                    </div>
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      {order.type} • {order.size} contracts • {new Date(order.createdAt).toLocaleTimeString()}
-                    </div>
-                    {order.closedSize ? <div className="muted" style={{ fontSize: 12 }}>Closed {order.closedSize} contracts</div> : null}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div>{formatCurrency(order.fillPrice)}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{order.leverage.toFixed(1)}x leverage</div>
-                    {typeof order.realizedPnl === 'number' ? (
-                      <div className={order.realizedPnl >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 12 }}>
-                        {order.realizedPnl >= 0 ? '+' : ''}{formatCurrency(order.realizedPnl)} realized
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-              {orderFlow.length === 0 ? <div className="muted">No recent filled activity yet.</div> : null}
             </div>
           </div>
+          <div className="grid">
+            <PriceChartCard candles={candles} />
+            {selectedMarket && portfolio ? (
+              <OrderTicket
+                market={selectedMarket}
+                account={portfolio.account}
+                position={selectedPosition}
+                marketOpenOrders={selectedOpenOrders}
+                recentOrders={selectedOrderFlow}
+                freeCollateral={portfolio.account.freeCollateral}
+                onSubmit={handleOrder}
+                isSubmitting={isSubmitting}
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-terminal">
+          {marketPanel}
+          <div className="grid">
+            <PriceChartCard candles={candles} />
+            <PositionsTable positions={portfolio?.positions ?? []} selectedSymbol={selectedSymbol} />
+            <PortfolioHistoryCard history={portfolio?.history ?? []} />
+          </div>
+          <div className="grid">
+            {selectedMarket && portfolio && executionSummary ? (
+              <OrderTicket
+                market={selectedMarket}
+                account={portfolio.account}
+                position={selectedPosition}
+                marketOpenOrders={selectedOpenOrders}
+                recentOrders={selectedOrderFlow}
+                freeCollateral={portfolio.account.freeCollateral}
+                onSubmit={handleOrder}
+                isSubmitting={isSubmitting}
+              />
+            ) : null}
+            {selectedMarket && portfolio && executionSummary ? (
+              <div className="card">
+                <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
+                  <div>
+                    <h3>Execution Link</h3>
+                    <div className="muted" style={{ fontSize: 12 }}>Order entry, live orders, fills, and account usage tied to {selectedMarket.symbol}</div>
+                  </div>
+                  <div className="muted" style={{ fontSize: 12 }}>{executionSummary.liveOrders} live / {selectedOrderFlow.length} recent</div>
+                </div>
+                <div className="detail-grid detail-grid-3">
+                  <div className="detail-card compact">
+                    <span className="field-label">Selected exposure</span>
+                    <strong>{selectedPosition ? formatCurrency(selectedPosition.notional) : 'Flat'}</strong>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {selectedPosition ? `${selectedPosition.side} • ${selectedPosition.size} ${selectedMarket.baseAsset}` : `No ${selectedMarket.symbol} position open yet`}
+                    </span>
+                  </div>
+                  <div className="detail-card compact">
+                    <span className="field-label">Reserved for resting orders</span>
+                    <strong>{formatCurrency(executionSummary.selectedReservedMargin)}</strong>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {executionSummary.liveOrders} staged order{executionSummary.liveOrders === 1 ? '' : 's'} • {formatCurrency(portfolio.account.reservedOrderMargin)} total reserved
+                    </span>
+                  </div>
+                  <div className="detail-card compact">
+                    <span className="field-label">Last fill</span>
+                    <strong>{executionSummary.recentFill ? `${executionSummary.recentFill.side.toUpperCase()} ${executionSummary.recentFill.size}` : 'No recent fill'}</strong>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {executionSummary.recentFill ? `${formatCurrency(executionSummary.recentFill.fillPrice)} • ${new Date(executionSummary.recentFill.createdAt).toLocaleTimeString()}` : 'Use market or limit orders to seed activity'}
+                    </span>
+                  </div>
+                </div>
+                <div className="row detail-card" style={{ marginTop: 12 }}>
+                  <div>
+                    <div className="field-label">Exposure share</div>
+                    <strong>{selectedPosition ? `${executionSummary.selectedExposureShare.toFixed(0)}% of gross exposure sits in ${selectedMarket.symbol}` : `${selectedMarket.symbol} is ready for a first trade`}</strong>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="field-label">Gross exposure</div>
+                    <strong>{formatCurrency(executionSummary.grossExposure)}</strong>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <OpenOrdersCard orders={selectedOpenOrders} symbol={selectedSymbol} onCancel={handleCancelOrder} cancelingOrderId={cancelingOrderId} />
+            {recentFillsCard}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,32 @@ export type Market = {
   indexPrice: number;
   change24h: number;
   volume24h: number;
+  fundingRate: number;
+  openInterest: number;
+  high24h: number;
+  low24h: number;
+};
+
+export type OrderBookLevel = {
+  price: number;
+  size: number;
+};
+
+export type OrderBookSnapshot = {
+  symbol: string;
+  spread: number;
+  bids: OrderBookLevel[];
+  asks: OrderBookLevel[];
+  timestamp: string;
+};
+
+export type Candle = {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 };
 
 export type Position = {
@@ -17,6 +43,8 @@ export type Position = {
   markPrice: number;
   unrealizedPnl: number;
   leverage: number;
+  notional: number;
+  liquidationPrice: number;
 };
 
 export type AccountSnapshot = {
@@ -36,4 +64,31 @@ export type SimulatedOrderRequest = {
   size: number;
   price?: number;
   leverage: number;
+};
+
+export type OrderRecord = {
+  orderId: string;
+  accountId: string;
+  marketSymbol: string;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit' | 'stop-market';
+  size: number;
+  leverage: number;
+  requestedPrice?: number;
+  fillPrice: number;
+  status: 'filled';
+  createdAt: string;
+};
+
+export type PortfolioSnapshot = {
+  account: AccountSnapshot;
+  positions: Position[];
+  recentOrders: OrderRecord[];
+};
+
+export type PlaceOrderResponse = {
+  order: OrderRecord;
+  position: Position;
+  portfolio: PortfolioSnapshot;
+  marketSnapshot: Market | null;
 };

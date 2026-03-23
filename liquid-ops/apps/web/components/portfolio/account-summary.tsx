@@ -5,12 +5,13 @@ export function AccountSummary({ account }: { account: AccountSnapshot }) {
     ['Equity', `$${account.equity.toLocaleString()}`],
     ['Free Collateral', `$${account.freeCollateral.toLocaleString()}`],
     ['Used Margin', `$${account.usedMargin.toLocaleString()}`],
+    ['Realized PnL', `${account.realizedPnl >= 0 ? '+' : ''}$${account.realizedPnl.toLocaleString()}`],
     ['Unrealized PnL', `${account.unrealizedPnl >= 0 ? '+' : ''}$${account.unrealizedPnl.toLocaleString()}`],
   ];
 
   return (
     <div className="card">
-      <div className="subgrid">
+      <div className="subgrid summary-grid">
         {metrics.map(([label, value]) => (
           <div className="metric" key={label}>
             <span>{label}</span>

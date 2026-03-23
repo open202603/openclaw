@@ -1,9 +1,9 @@
 import type { AccountSnapshot, Market, Position } from '@liquid-ops/types';
 
 export const mockMarkets: Market[] = [
-  { symbol: 'BTC-PERP', baseAsset: 'BTC', quoteAsset: 'USD', markPrice: 84214, indexPrice: 84201, change24h: 3.2, volume24h: 1203400000 },
-  { symbol: 'ETH-PERP', baseAsset: 'ETH', quoteAsset: 'USD', markPrice: 4682, indexPrice: 4676, change24h: 2.1, volume24h: 843000000 },
-  { symbol: 'SOL-PERP', baseAsset: 'SOL', quoteAsset: 'USD', markPrice: 214, indexPrice: 213.7, change24h: -1.4, volume24h: 351000000 },
+  { symbol: 'BTC-PERP', baseAsset: 'BTC', quoteAsset: 'USD', markPrice: 84214, indexPrice: 84201, change24h: 3.2, volume24h: 1203400000, fundingRate: 0.00012, openInterest: 428000000, high24h: 85120, low24h: 81240 },
+  { symbol: 'ETH-PERP', baseAsset: 'ETH', quoteAsset: 'USD', markPrice: 4682, indexPrice: 4676, change24h: 2.1, volume24h: 843000000, fundingRate: 0.00018, openInterest: 211000000, high24h: 4740, low24h: 4488 },
+  { symbol: 'SOL-PERP', baseAsset: 'SOL', quoteAsset: 'USD', markPrice: 214, indexPrice: 213.7, change24h: -1.4, volume24h: 351000000, fundingRate: -0.00004, openInterest: 92000000, high24h: 222, low24h: 206 },
 ];
 
 export const mockAccount: AccountSnapshot = {
@@ -16,6 +16,6 @@ export const mockAccount: AccountSnapshot = {
 };
 
 export const mockPositions: Position[] = [
-  { id: 'pos_1', marketSymbol: 'BTC-PERP', side: 'long', size: 0.85, entryPrice: 83120, markPrice: 84214, unrealizedPnl: 929.9, leverage: 5 },
-  { id: 'pos_2', marketSymbol: 'ETH-PERP', side: 'short', size: 12, entryPrice: 4720, markPrice: 4682, unrealizedPnl: 456, leverage: 3 },
+  { id: 'pos_1', marketSymbol: 'BTC-PERP', side: 'long', size: 0.85, entryPrice: 83120, markPrice: 84214, unrealizedPnl: 929.9, leverage: 5, notional: 71581.9, liquidationPrice: 66496 },
+  { id: 'pos_2', marketSymbol: 'ETH-PERP', side: 'short', size: 12, entryPrice: 4720, markPrice: 4682, unrealizedPnl: 456, leverage: 3, notional: 56184, liquidationPrice: 6293.33 },
 ];

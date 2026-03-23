@@ -33,7 +33,7 @@ button, input, select { font: inherit; }
 .sidebar a { padding: 10px 12px; border-radius: 10px; color: var(--muted); }
 .sidebar a:hover { background: rgba(77, 163, 255, 0.08); color: var(--text); }
 .main { padding: 20px; }
-.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
 .badge { border: 1px solid rgba(38, 208, 124, 0.3); color: #8ff0bd; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
 .grid { display: grid; gap: 16px; }
 .grid-terminal { grid-template-columns: 320px minmax(0, 1fr) 360px; }
@@ -50,11 +50,14 @@ button, input, select { font: inherit; }
 .metric span { color: var(--muted); font-size: 12px; }
 .metric strong { font-size: 20px; }
 .table { width: 100%; border-collapse: collapse; }
-.table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+.selected-row { background: rgba(77, 163, 255, 0.08); }
 .pill { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
 .pill.buy { background: rgba(38, 208, 124, 0.14); color: #7ef0b2; }
 .pill.sell { background: rgba(255, 94, 114, 0.14); color: #ff9eaa; }
 .order-form { display: grid; gap: 12px; }
+.order-form label { display: grid; gap: 6px; }
+.field-label { color: var(--muted); font-size: 12px; }
 .order-form input, .order-form select {
   width: 100%;
   background: var(--panel-2);
@@ -63,6 +66,7 @@ button, input, select { font: inherit; }
   border-radius: 12px;
   padding: 12px;
 }
+.order-form input:disabled { opacity: 0.7; }
 .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .button {
   border: 0;
@@ -72,21 +76,46 @@ button, input, select { font: inherit; }
   color: white;
   font-weight: 600;
 }
+.button:disabled { cursor: progress; opacity: 0.65; }
 .button.buy { background: linear-gradient(135deg, #18bb6c, #26d07c); }
 .button.sell { background: linear-gradient(135deg, #f14b61, #ff5e72); }
-.spark {
+.spark-bars {
   height: 280px;
   border-radius: 16px;
   border: 1px dashed rgba(77, 163, 255, 0.35);
   display: grid;
-  place-items: center;
-  color: var(--muted);
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  align-items: end;
+  gap: 6px;
+  padding: 12px;
   background: linear-gradient(180deg, rgba(77,163,255,0.08), rgba(77,163,255,0.01));
 }
-.subgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.spark-bar-wrap {
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.spark-bar {
+  width: 100%;
+  border-radius: 999px;
+  min-height: 8px;
+}
+.spark-bar.up { background: linear-gradient(180deg, rgba(38,208,124,0.25), rgba(38,208,124,0.95)); }
+.spark-bar.down { background: linear-gradient(180deg, rgba(255,94,114,0.25), rgba(255,94,114,0.95)); }
+.subgrid { display: grid; gap: 12px; }
+.summary-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.order-row {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(10, 21, 34, 0.6);
+}
 .muted { color: var(--muted); }
+.success-banner { border-color: rgba(38, 208, 124, 0.35); color: #8ff0bd; }
+.error-banner { border-color: rgba(255, 94, 114, 0.35); color: #ffb4be; }
 @media (max-width: 1200px) {
   .grid-terminal { grid-template-columns: 1fr; }
   .shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

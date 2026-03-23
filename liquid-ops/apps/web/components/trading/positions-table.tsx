@@ -11,7 +11,9 @@ export function PositionsTable({ positions }: { positions: Position[] }) {
             <th>Side</th>
             <th>Size</th>
             <th>Entry</th>
+            <th>Mark</th>
             <th>PnL</th>
+            <th>Liq.</th>
           </tr>
         </thead>
         <tbody>
@@ -21,9 +23,11 @@ export function PositionsTable({ positions }: { positions: Position[] }) {
               <td><span className={`pill ${position.side === 'long' ? 'buy' : 'sell'}`}>{position.side}</span></td>
               <td>{position.size}</td>
               <td>${position.entryPrice.toLocaleString()}</td>
+              <td>${position.markPrice.toLocaleString()}</td>
               <td style={{ color: position.unrealizedPnl >= 0 ? '#7ef0b2' : '#ff9eaa' }}>
                 {position.unrealizedPnl >= 0 ? '+' : ''}${position.unrealizedPnl.toLocaleString()}
               </td>
+              <td>${position.liquidationPrice.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>

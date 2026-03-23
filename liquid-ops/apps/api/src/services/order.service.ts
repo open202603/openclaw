@@ -1,4 +1,4 @@
-import type { SimulatedOrderRequest } from '@liquid-ops/types';
+import type { PlaceOrderResponse, SimulatedOrderRequest } from '@liquid-ops/types';
 import type { MarketDataService } from './market-data.service.js';
 import type { PortfolioService } from './portfolio.service.js';
 import type { RiskEngineService } from './risk-engine.service.js';
@@ -10,7 +10,7 @@ export class OrderService {
     private readonly riskEngine: RiskEngineService,
   ) {}
 
-  placeSimulatedOrder(order: SimulatedOrderRequest) {
+  placeSimulatedOrder(order: SimulatedOrderRequest): PlaceOrderResponse {
     const { market } = this.riskEngine.validateOrder(
       order.accountId,
       order.marketSymbol,
@@ -20,20 +20,27 @@ export class OrderService {
     );
 
     const fillPrice = order.type === 'market' ? market.markPrice : order.price ?? market.markPrice;
-    const position = this.portfolioService.applyOrderFill(
-      order.accountId,
-      order.marketSymbol,
-      order.side,
-      order.size,
+    const orderRecord = {
+      orderId: `ord_${Date.now()}`,
+      accountId: order.accountId,
+      marketSymbol: order.marketSymbol,
+      side: order.side,
+      type: order.type,
+      size: order.size,
+      leverage: order.leverage,
+      requestedPrice: order.price,
       fillPrice,
-      order.leverage,
-    );
+      status: 'filled' as const,
+      createdAt: new Date().toISOString(),
+    };
+
+    const position = this.portfolioService.applyOrderFill(orderRecord);
+    const portfolio = this.portfolioService.getPortfolioSnapshot(order.accountId);
 
     return {
-      orderId: `ord_${Date.now()}`,
-      status: 'filled',
-      fillPrice,
+      order: orderRecord,
       position,
+      portfolio,
       marketSnapshot: this.marketData.getMarket(order.marketSymbol),
     };
   }

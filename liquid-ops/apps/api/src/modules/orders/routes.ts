@@ -1,21 +1,24 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-const PlaceOrderSchema = z.object({
-  accountId: z.string(),
-  marketSymbol: z.string(),
+const placeOrderSchema = z.object({
+  accountId: z.string().min(1),
+  marketSymbol: z.string().min(1),
   side: z.enum(['buy', 'sell']),
   type: z.enum(['market', 'limit', 'stop-market']),
   size: z.number().positive(),
   price: z.number().positive().optional(),
-  leverage: z.number().min(1).max(20),
+  leverage: z.number().min(1).max(10),
 });
 
 export function registerOrderRoutes(app: FastifyInstance) {
   app.post('/orders', async (request, reply) => {
-    const payload = PlaceOrderSchema.parse(request.body);
-    const result = app.ctx.orderService.placeSimulatedOrder(payload);
-    reply.code(201);
-    return { data: result };
+    try {
+      const payload = placeOrderSchema.parse(request.body);
+      return app.ctx.orderService.placeSimulatedOrder(payload);
+    } catch (error) {
+      request.log.warn({ error }, 'order rejected');
+      return reply.code(400).send({ message: error instanceof Error ? error.message : 'Invalid order request' });
+    }
   });
 }

@@ -8,6 +8,15 @@ const sizePresets = [10, 25, 50, 100];
 
 type OrderDraft = Omit<SimulatedOrderRequest, 'accountId' | 'marketSymbol'>;
 
+type StrategyPreset = {
+  label: string;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit' | 'stop-market';
+  size: number;
+  leverage: number;
+  priceMultiplier?: number;
+};
+
 function formatCurrency(value: number) {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })}`;
 }
@@ -43,10 +52,37 @@ export function OrderTicket({
   useEffect(() => {
     setDraft((current) => ({
       ...current,
-      size: market.symbol === 'BTC-PERP' ? Math.min(current.size, 0.25) || 0.05 : current.size,
+      size:
+        market.symbol === 'BTC-PERP'
+          ? Math.min(current.size, 0.25) || 0.05
+          : market.symbol === 'ETH-PERP'
+            ? Math.min(current.size, 4) || 0.5
+            : Math.min(current.size, 80) || 10,
       price: market.markPrice,
     }));
   }, [market.markPrice, market.symbol]);
+
+  const strategyPresets = useMemo<StrategyPreset[]>(() => {
+    if (market.symbol === 'BTC-PERP') {
+      return [
+        { label: 'BTC breakout', side: 'buy', type: 'stop-market', size: 0.08, leverage: 4, priceMultiplier: 1.004 },
+        { label: 'BTC pullback', side: 'buy', type: 'limit', size: 0.06, leverage: 5, priceMultiplier: 0.996 },
+        { label: 'BTC fade', side: 'sell', type: 'limit', size: 0.05, leverage: 4, priceMultiplier: 1.003 },
+      ];
+    }
+    if (market.symbol === 'ETH-PERP') {
+      return [
+        { label: 'ETH trend add', side: 'buy', type: 'market', size: 1.25, leverage: 4 },
+        { label: 'ETH mean reversion', side: 'sell', type: 'limit', size: 1, leverage: 3, priceMultiplier: 1.005 },
+        { label: 'ETH reclaim', side: 'buy', type: 'stop-market', size: 0.8, leverage: 4, priceMultiplier: 1.003 },
+      ];
+    }
+    return [
+      { label: 'SOL momentum', side: 'buy', type: 'market', size: 18, leverage: 3 },
+      { label: 'SOL dip bid', side: 'buy', type: 'limit', size: 22, leverage: 3, priceMultiplier: 0.992 },
+      { label: 'SOL risk-off', side: 'sell', type: 'stop-market', size: 16, leverage: 2, priceMultiplier: 0.994 },
+    ];
+  }, [market.symbol]);
 
   const referencePrice = draft.type === 'market' ? market.markPrice : draft.price ?? market.markPrice;
   const estimatedNotional = useMemo(() => draft.size * referencePrice, [draft.size, referencePrice]);
@@ -59,24 +95,35 @@ export function OrderTicket({
   const marginUsagePct = useMemo(() => (estimatedMargin / Math.max(freeCollateral, 1)) * 100, [estimatedMargin, freeCollateral]);
   const currentExposureSide = position?.side === 'long' ? 'Long' : position?.side === 'short' ? 'Short' : 'Flat';
   const intentLabel = useMemo(() => {
-    if (!position) return draft.side === 'buy' ? 'Open / add long' : 'Open / add short';
+    if (!position) return draft.side === 'buy' ? `Open / add ${market.baseAsset} long` : `Open / add ${market.baseAsset} short`;
     if (position.side === 'long') return draft.side === 'buy' ? 'Add to long' : 'Reduce / flip long';
     return draft.side === 'sell' ? 'Add to short' : 'Reduce / flip short';
-  }, [draft.side, position]);
+  }, [draft.side, market.baseAsset, position]);
   const selectedReservedMargin = useMemo(() => marketOpenOrders.reduce((sum, order) => sum + (order.reservedMargin ?? 0), 0), [marketOpenOrders]);
   const latestOrder = recentOrders[0] ?? null;
   const orderPlan = useMemo(() => {
-    if (!position) return draft.side === 'buy' ? 'First touch opens BTC risk with long bias.' : 'First touch opens BTC risk with short bias.';
-    if (position.side === 'long' && draft.side === 'buy') return 'This order scales into the current long and increases directional exposure.';
-    if (position.side === 'long' && draft.side === 'sell') return 'This order starts taking long risk off or fully flips the book if oversized.';
-    if (position.side === 'short' && draft.side === 'sell') return 'This order leans harder into the current short.';
-    return 'This order buys back short exposure and can flip the position if large enough.';
-  }, [draft.side, position]);
+    if (!position) return draft.side === 'buy' ? `First touch opens ${market.baseAsset} risk with long bias.` : `First touch opens ${market.baseAsset} risk with short bias.`;
+    if (position.side === 'long' && draft.side === 'buy') return `This order scales into the current ${market.baseAsset} long and increases directional exposure.`;
+    if (position.side === 'long' && draft.side === 'sell') return `This order starts taking ${market.baseAsset} long risk off or fully flips the book if oversized.`;
+    if (position.side === 'short' && draft.side === 'sell') return `This order leans harder into the current ${market.baseAsset} short.`;
+    return `This order buys back ${market.baseAsset} short exposure and can flip the position if large enough.`;
+  }, [draft.side, market.baseAsset, position]);
 
   function updateSize(percent: number) {
     const decimals = market.symbol === 'SOL-PERP' ? 1 : 3;
     const sized = Number((maxSizeApprox * (percent / 100)).toFixed(decimals));
     setDraft((current) => ({ ...current, size: Math.max(sized, 0) }));
+  }
+
+  function applyPreset(preset: StrategyPreset) {
+    const price = preset.type === 'market' ? market.markPrice : Number((market.markPrice * (preset.priceMultiplier ?? 1)).toFixed(market.symbol === 'BTC-PERP' ? 0 : 2));
+    setDraft({
+      side: preset.side,
+      type: preset.type,
+      size: preset.size,
+      leverage: preset.leverage,
+      price,
+    });
   }
 
   async function submit() {
@@ -111,9 +158,23 @@ export function OrderTicket({
       <div className="row" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div>
           <h3>Order Entry</h3>
-          <div className="muted" style={{ fontSize: 12 }}>{market.symbol} • market fills now, limit/stop rest until triggered</div>
+          <div className="muted" style={{ fontSize: 12 }}>{market.symbol} • major-asset execution with market fills now and resting limit / stop orders</div>
         </div>
         <div className={`pill ${draft.side === 'buy' ? 'buy' : 'sell'}`}>{intentLabel}</div>
+      </div>
+
+      <div className="detail-card compact" style={{ marginBottom: 12 }}>
+        <div className="row">
+          <span className="field-label">Strategy presets</span>
+          <span className="muted" style={{ fontSize: 12 }}>Faster product-like trading flows</span>
+        </div>
+        <div className="preset-row" style={{ marginTop: 10 }}>
+          {strategyPresets.map((preset) => (
+            <button key={preset.label} type="button" className="ghost-button" onClick={() => applyPreset(preset)}>
+              {preset.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="segmented-control" style={{ marginBottom: 12 }}>

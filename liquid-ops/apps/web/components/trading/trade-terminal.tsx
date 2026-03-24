@@ -2,10 +2,13 @@
 
 import type { Candle, Market, OrderBookSnapshot, PortfolioSnapshot, Position, SimulatedOrderRequest } from '@liquid-ops/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { cancelOrder, fetchCandles, fetchMarkets, fetchPortfolio, getWsUrl, placeOrder } from '../../lib/api';
+import { cancelOrder, depositFunds, fetchCandles, fetchMarkets, fetchPortfolio, getWsUrl, placeOrder } from '../../lib/api';
 import { mockCandles, mockMarkets, mockOrderBooks, mockPortfolio } from '../../lib/mock-data';
+import { FundingCard } from '../account/funding-card';
+import { TopbarWalletCta } from '../layout/topbar-wallet-cta';
 import { MarketList } from '../markets/market-list';
 import { AccountSummary } from '../portfolio/account-summary';
+import { AssetCompositionCard } from '../portfolio/asset-composition-card';
 import { PortfolioHistoryCard } from '../portfolio/portfolio-history-card';
 import { OpenOrdersCard } from './open-orders-card';
 import { OrderBookCard } from './order-book-card';
@@ -42,9 +45,13 @@ function formatCompactCurrency(value: number) {
 export function TradeTerminal({
   initialMarketSymbol = 'BTC-PERP',
   view = 'trade',
+  initialAccessMode = 'demo',
+  initialShowDepositMessage = false,
 }: {
   initialMarketSymbol?: string;
   view?: ViewMode;
+  initialAccessMode?: 'demo' | 'wallet';
+  initialShowDepositMessage?: boolean;
 }) {
   const [markets, setMarkets] = useState<Market[]>(mockMarkets);
   const [portfolio, setPortfolio] = useState<PortfolioSnapshot | null>(mockPortfolio);
@@ -55,6 +62,8 @@ export function TradeTerminal({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [accessMode, setAccessMode] = useState<'demo' | 'wallet'>(initialAccessMode);
 
   const selectedMarket = useMemo(() => markets.find((market) => market.symbol === selectedSymbol) ?? markets[0] ?? null, [markets, selectedSymbol]);
   const selectedPosition = useMemo<Position | null>(() => portfolio?.positions.find((position) => position.marketSymbol === selectedSymbol) ?? null, [portfolio?.positions, selectedSymbol]);
@@ -83,6 +92,11 @@ export function TradeTerminal({
   useEffect(() => {
     loadBaseData().catch((loadError) => setError(loadError instanceof Error ? `${loadError.message}. Showing seeded demo market state.` : 'Failed to load live market data'));
   }, [loadBaseData]);
+
+  useEffect(() => {
+    if (!initialShowDepositMessage) return;
+    setMessage('Deposit rail is open — top up the demo account to immediately increase deployable collateral.');
+  }, [initialShowDepositMessage]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -145,13 +159,28 @@ export function TradeTerminal({
       setPortfolio(result.portfolio);
       setMessage(
         result.order.status === 'open'
-          ? `${result.order.type} ${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} armed at ${formatCurrency(result.order.requestedPrice ?? 0)}`
+          ? `${result.order.type} ${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} armed at ${formatCurrency(result.order.requestedPrice ?? result.order.triggerPrice ?? 0)}`
           : `${result.order.side.toUpperCase()} ${result.order.size} ${result.order.marketSymbol} filled at ${formatCurrency(result.order.fillPrice)}${result.order.realizedPnl ? ` • realized ${result.order.realizedPnl >= 0 ? '+' : ''}${formatCurrency(result.order.realizedPnl)}` : ''}`,
       );
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Order request failed');
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleDeposit(amount: number) {
+    setIsDepositing(true);
+    setError(null);
+    try {
+      const result = await depositFunds(accountId, amount);
+      setPortfolio(result.portfolio);
+      setMessage(`${formatCurrency(result.amount)} added to demo collateral. Free collateral is now ${formatCurrency(result.portfolio.account.freeCollateral)}.`);
+    } catch (depositError) {
+      setError(depositError instanceof Error ? depositError.message : 'Deposit request failed');
+      throw depositError;
+    } finally {
+      setIsDepositing(false);
     }
   }
 
@@ -187,9 +216,11 @@ export function TradeTerminal({
     const marketFillCount = orderFlow.filter((order) => order.marketSymbol === selectedMarket.symbol).length;
     const thesis = selectedMarket.symbol === 'BTC-PERP'
       ? selectedMarket.change24h >= 0
-        ? 'Trend is intact, depth is seeded, and BTC opens with real execution context instead of an empty demo shell.'
-        : 'Pullback structure is visible immediately, making both reclaim and fade setups legible on load.'
-      : `${selectedMarket.symbol} stays connected to the rest of the desk with live depth, fills, and account state.`;
+        ? 'BTC is acting like the anchor contract: deepest book, highest volume, and the cleanest path for the desk to feel instantly tradable.'
+        : 'BTC is in pullback mode, which makes the terminal read like a real decision surface instead of a permanently bullish demo.'
+      : selectedMarket.symbol === 'ETH-PERP'
+        ? 'ETH keeps the desk high-beta and rotational, sitting between BTC leadership and faster intraday repositioning.'
+        : 'SOL provides the faster lane — more momentum, more velocity, and a clearer “risk-on / risk-off” visual swing.';
 
     return {
       spread,
@@ -229,20 +260,20 @@ export function TradeTerminal({
     if (view === 'portfolio') {
       return {
         title: 'Portfolio command center',
-        subtitle: 'Account-first layout with exposure, equity, and execution state kept in one place.',
+        subtitle: 'Account-first layout with majors composition, equity, collateral, and linked execution state kept in the same operator flow.',
         badge: 'Risk view',
       };
     }
     if (view === 'markets') {
       return {
         title: 'Markets monitor',
-        subtitle: 'Cross-market scan with flagship depth and execution details still attached.',
+        subtitle: 'Scanner-first layout with majors leadership, breadth, chart context, and order entry still one move away.',
         badge: 'Scanner view',
       };
     }
     return {
       title: 'Trade execution terminal',
-      subtitle: 'Chart, book, order ticket, staged orders, fills, and account impact all visible at once.',
+      subtitle: 'A denser exchange-style surface with scanner, chart, order book, ticket, fills, and account impact visible together.',
       badge: 'Trade view',
     };
   }, [view]);
@@ -267,7 +298,7 @@ export function TradeTerminal({
       <div className="row" style={{ marginBottom: 12 }}>
         <div>
           <h3>Recent Fills</h3>
-          <div className="muted" style={{ fontSize: 12 }}>Latest trading activity with realized PnL context</div>
+          <div className="muted" style={{ fontSize: 12 }}>Live activity tape with realized PnL context</div>
         </div>
         <div className="muted" style={{ fontSize: 12 }}>{orderFlow.length} entries</div>
       </div>
@@ -301,18 +332,19 @@ export function TradeTerminal({
   );
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="grid" style={{ gap: 12 }}>
       <div className="card terminal-banner">
         <div className="row terminal-banner-row">
           <div>
             <div className="eyebrow">{pageMeta.badge}</div>
             <h2 style={{ marginBottom: 6 }}>{pageMeta.title}</h2>
-            <div className="muted" style={{ maxWidth: 820, fontSize: 13 }}>{pageMeta.subtitle}</div>
+            <div className="muted" style={{ maxWidth: 860, fontSize: 13 }}>{pageMeta.subtitle}</div>
           </div>
           <div className="toolbar-pills">
-            <div className="chip">Depth linked</div>
-            <div className="chip">Portfolio linked</div>
-            <div className="chip">Orders live</div>
+            <div className="chip">High-density shell</div>
+            <div className="chip">Majors only</div>
+            <div className="chip">Wallet bridge</div>
+            <TopbarWalletCta />
           </div>
         </div>
 
@@ -321,13 +353,13 @@ export function TradeTerminal({
             <div className="row" style={{ marginTop: 18, alignItems: 'flex-end' }}>
               <div>
                 <div className="eyebrow">Active contract</div>
-                <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.04em', marginTop: 4 }}>{selectedMarket.symbol}</div>
+                <div style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-0.05em', marginTop: 4 }}>{selectedMarket.symbol}</div>
                 <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
                   {selectedMarket.baseAsset}/{selectedMarket.quoteAsset} • funding {(selectedMarket.fundingRate * 100).toFixed(3)}% • OI {formatCompactCurrency(selectedMarket.openInterest)}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 32, fontWeight: 800 }}>{formatCurrency(selectedMarket.markPrice)}</div>
+                <div style={{ fontSize: 34, fontWeight: 900 }}>{formatCurrency(selectedMarket.markPrice)}</div>
                 <div className={selectedMarket.change24h >= 0 ? 'tone-positive' : 'tone-negative'} style={{ fontSize: 13 }}>
                   {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h}% 24h • basis {selectedMarketStats.basis >= 0 ? '+' : ''}{formatCurrency(selectedMarketStats.basis)}
                 </div>
@@ -336,7 +368,7 @@ export function TradeTerminal({
 
             <div className="market-strip">
               <div className="mini-stat">
-                <div className="field-label">Trade pulse</div>
+                <div className="field-label">Contract thesis</div>
                 <strong>{selectedMarketStats.thesis}</strong>
               </div>
               <div className="mini-stat">
@@ -364,7 +396,9 @@ export function TradeTerminal({
         ) : null}
       </div>
 
+      <FundingCard accessMode={accessMode} onAccessModeChange={setAccessMode} onDeposit={handleDeposit} isDepositing={isDepositing} />
       {portfolio ? <AccountSummary account={portfolio.account} positions={portfolio.positions} openOrders={portfolio.openOrders} /> : null}
+      {portfolio ? <AssetCompositionCard positions={portfolio.positions} selectedSymbol={selectedSymbol} /> : null}
       {message ? <div className="card success-banner">{message}</div> : null}
       {error ? <div className="card error-banner">{error}</div> : null}
 
@@ -400,7 +434,7 @@ export function TradeTerminal({
               <div className="row" style={{ marginBottom: 12 }}>
                 <div>
                   <h3>Market Breadth</h3>
-                  <div className="muted" style={{ fontSize: 12 }}>Cross-market scan so the page feels like a market monitor, not the trade page repeated.</div>
+                  <div className="muted" style={{ fontSize: 12 }}>Scanner-first context so the page feels like a live monitor, not a clone.</div>
                 </div>
                 <div className="chip">Scanner</div>
               </div>
@@ -470,7 +504,7 @@ export function TradeTerminal({
                 <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
                   <div>
                     <h3>Execution Link</h3>
-                    <div className="muted" style={{ fontSize: 12 }}>Order entry, live orders, fills, and account usage tied to {selectedMarket.symbol}</div>
+                    <div className="muted" style={{ fontSize: 12 }}>Order entry, live orders, fills, and collateral usage tied directly to {selectedMarket.symbol}</div>
                   </div>
                   <div className="muted" style={{ fontSize: 12 }}>{executionSummary.liveOrders} live / {selectedOrderFlow.length} recent</div>
                 </div>

@@ -11,6 +11,7 @@ export function AccountSummary({ account, positions, openOrders }: { account: Ac
   const buyingPower = account.freeCollateral * 5;
   const riskTone = marginRatio < 30 ? 'tone-positive' : marginRatio < 60 ? 'tone-warning' : 'tone-negative';
   const riskLabel = marginRatio < 30 ? 'Healthy' : marginRatio < 60 ? 'Elevated' : 'High';
+  const activeMajors = positions.map((position) => position.marketSymbol.replace('-PERP', '')).join(' / ') || 'Flat';
 
   const metrics = [
     ['Equity', formatCurrency(account.equity)],
@@ -55,10 +56,8 @@ export function AccountSummary({ account, positions, openOrders }: { account: Ac
             <strong>{largestPosition ? `${largestPosition.marketSymbol} ${formatCurrency(largestPosition.notional)}` : '—'}</strong>
           </div>
           <div>
-            <span className="field-label">Net open PnL</span>
-            <strong className={account.unrealizedPnl >= 0 ? 'tone-positive' : 'tone-negative'}>
-              {account.unrealizedPnl >= 0 ? '+' : ''}{formatCurrency(account.unrealizedPnl)}
-            </strong>
+            <span className="field-label">Active majors</span>
+            <strong>{activeMajors}</strong>
           </div>
         </div>
       </div>

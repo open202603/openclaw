@@ -90,3 +90,32 @@ export async function cancelOrder(accountId: string, orderId: string) {
 
   return body as PlaceOrderResponse;
 }
+
+export async function fetchOptionsLiveData() {
+  return getJson<{
+    generatedAt: number;
+    instruments: Array<{
+      venue: string;
+      symbol: string;
+      underlying: string;
+      expiryTs: number;
+      strike: number;
+      optionSide: string;
+      settlementCurrency: string;
+    }>;
+    snapshots: Array<{
+      venue: string;
+      symbol: string;
+      bidPrice: number | null;
+      askPrice: number | null;
+      markPrice: number | null;
+      indexPrice: number | null;
+      impliedVol: number | null;
+      delta?: number | null;
+      gamma?: number | null;
+      vega?: number | null;
+      theta?: number | null;
+      timestamp: number;
+    }>;
+  }>('/options/live');
+}

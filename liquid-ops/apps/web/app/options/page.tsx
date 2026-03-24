@@ -1,131 +1,132 @@
-const venueRows = [
-  {
-    venue: 'Deribit',
-    status: 'Live instruments + snapshots',
-    note: 'BTC options metadata and market snapshots flowing into the backend core.',
-  },
-  {
-    venue: 'Bybit',
-    status: 'Live instruments + snapshots',
-    note: 'Option ticker surface, mark, index, IV, and greek fields are normalized.',
-  },
-  {
-    venue: 'OKX',
-    status: 'Live instruments + snapshots',
-    note: 'BTC-USD options contracts and ticker snapshots are normalized into the shared model.',
-  },
-  {
-    venue: 'Binance Options',
-    status: 'Live instruments + mark feed',
-    note: 'Mark/IV/greeks route into the same market snapshot abstraction.',
-  },
-];
+import { fetchOptionsLiveData } from '../../lib/api';
 
-const rails = [
-  ['Core mode', 'Paper / infrastructure-first'],
-  ['Instrument universe', '4 venues / BTC options'],
-  ['Snapshot rail', 'Polling refresh active'],
-  ['Execution rail', 'Unified abstraction'],
-  ['Risk posture', 'Pre-trade skeleton'],
-  ['Next target', 'Websocket lane + balances'],
-];
+function fmt(value: number | null | undefined, digits = 2) {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return value.toFixed(digits);
+}
 
-const commandDeck = [
-  {
-    title: 'Market core',
-    subtitle: 'Unified options instruments plus cross-venue normalized market snapshots.',
-    badge: 'Live now',
-  },
-  {
-    title: 'Execution layer',
-    subtitle: 'Paper-first order abstraction with venue-specific adapters behind one interface.',
-    badge: 'Scaffolded',
-  },
-  {
-    title: 'Risk engine',
-    subtitle: 'Foundational caps for delta, vega, and open-order controls before live routing.',
-    badge: 'Foundation',
-  },
-  {
-    title: 'Strategy lane',
-    subtitle: 'Arbitrage and market-making hooks ready for real signal logic and hedge routing.',
-    badge: 'Next up',
-  },
-];
+function fmtDate(ts: number) {
+  return new Date(ts).toISOString().slice(0, 10);
+}
 
-export default function OptionsDashboardPage() {
+type OptionPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function OptionsDashboardPage(_props: OptionPageProps) {
+  let data: Awaited<ReturnType<typeof fetchOptionsLiveData>> | null = null;
+  let loadError: string | null = null;
+
+  try {
+    data = await fetchOptionsLiveData();
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : 'Failed to load options live data';
+  }
+
+  const instruments = data?.instruments.slice(0, 24) ?? [];
+  const snapshots = data?.snapshots.slice(0, 24) ?? [];
+  const venues = data
+    ? [...new Set(data.instruments.map((item) => item.venue))]
+    : [];
+
   return (
     <div className="platform-grid platform-grid-pro">
       <div className="card overview-hero terminal-banner terminal-hero-pro">
         <div className="hero-grid grid hero-grid-pro">
           <div>
-            <div className="eyebrow">Options Trading System // web entry</div>
+            <div className="eyebrow">Options Trading System // live dashboard</div>
             <h2 style={{ marginTop: 10, fontSize: 44, lineHeight: 0.98, maxWidth: 860 }}>
-              Multi-venue crypto options command surface for Binance, Deribit, OKX, and Bybit.
+              Live multi-venue crypto options dashboard across Binance, Deribit, OKX, and Bybit.
             </h2>
             <p className="muted" style={{ maxWidth: 820, fontSize: 15, lineHeight: 1.75 }}>
-              This is the web dashboard entry for the real options trading core. The backend now loads live instruments and live market snapshots across four venues, while the front-end becomes the operator surface for monitoring arbitrage, risk, and future market-making workflows.
+              Liquid Ops is now acting as the web entry for the real options backend. This page is no longer just a status shell — it reads normalized instruments and market snapshots exported from the options core.
             </p>
             <div className="terminal-statline terminal-statline-pro">
-              <div className="statline-pill">4 venue options core</div>
-              <div className="statline-pill">200 normalized instruments</div>
-              <div className="statline-pill">200 normalized snapshots</div>
+              <div className="statline-pill">{data ? `${data.instruments.length} instruments` : 'No instrument feed'}</div>
+              <div className="statline-pill">{data ? `${data.snapshots.length} snapshots` : 'No snapshot feed'}</div>
+              <div className="statline-pill">{venues.length ? `${venues.length} venues live` : 'Venue feed pending'}</div>
               <div className="statline-pill">Paper execution mode</div>
-              <div className="statline-pill">Web dashboard primary entry</div>
             </div>
           </div>
 
           <div className="detail-card launch-board-pro" style={{ alignSelf: 'stretch' }}>
             <div className="row" style={{ marginBottom: 12 }}>
               <div>
-                <div className="eyebrow">System posture</div>
-                <h3 style={{ marginTop: 6 }}>Operator launch board</h3>
+                <div className="eyebrow">Feed status</div>
+                <h3 style={{ marginTop: 6 }}>Dashboard state</h3>
               </div>
-              <div className="chip">Options core</div>
+              <div className="chip">Live read</div>
             </div>
             <div className="grid">
-              {rails.map(([label, value]) => (
-                <div key={label} className="list-card-row" style={{ paddingTop: 0 }}>
-                  <div>
-                    <strong>{label}</strong>
-                    <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Current backend state</div>
-                  </div>
-                  <div>{value}</div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}>
+                <div>
+                  <strong>Generated at</strong>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Backend export timestamp</div>
                 </div>
-              ))}
+                <div>{data ? new Date(data.generatedAt).toISOString() : '—'}</div>
+              </div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}>
+                <div>
+                  <strong>Instrument rail</strong>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Normalized options contracts</div>
+                </div>
+                <div>{data ? data.instruments.length : 0}</div>
+              </div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}>
+                <div>
+                  <strong>Snapshot rail</strong>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Cross-venue market reads</div>
+                </div>
+                <div>{data ? data.snapshots.length : 0}</div>
+              </div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}>
+                <div>
+                  <strong>Load state</strong>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Front-end read from API</div>
+                </div>
+                <div>{loadError ? 'Error' : 'Healthy'}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="command-strip command-strip-pro">
-        {commandDeck.map((item) => (
-          <div key={item.title} className="card command-card command-card-pro">
-            <div className="row" style={{ marginBottom: 10 }}>
-              <div className="eyebrow">System lane</div>
-              <div className="chip">{item.badge}</div>
-            </div>
-            <h3>{item.title}</h3>
-            <div className="muted" style={{ fontSize: 13, lineHeight: 1.75, minHeight: 84 }}>{item.subtitle}</div>
+      {loadError ? (
+        <div className="card">
+          <h3>Options feed unavailable</h3>
+          <div className="muted" style={{ fontSize: 13 }}>{loadError}</div>
+          <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+            Make sure the options backend export script has generated `options-trading-system/data/live-data.json`.
           </div>
-        ))}
-      </div>
+        </div>
+      ) : null}
 
       <div className="data-rack data-rack-pro">
         <div className="card">
           <div className="row" style={{ marginBottom: 12 }}>
             <div>
-              <h3>Venue coverage</h3>
-              <div className="muted" style={{ fontSize: 12 }}>The backend core is already ingesting live options metadata and normalized market snapshots.</div>
+              <h3>Normalized instruments</h3>
+              <div className="muted" style={{ fontSize: 12 }}>BTC options contracts already flowing through the shared model.</div>
             </div>
-            <div className="chip">4 venues</div>
+            <div className="chip">Top 24</div>
           </div>
-          <div className="grid">
-            {venueRows.map((item) => (
-              <div key={item.venue} className="detail-card compact">
-                <span className="field-label">{item.venue}</span>
-                <strong>{item.status}</strong>
-                <span className="muted" style={{ fontSize: 12 }}>{item.note}</span>
+          <div className="options-table">
+            <div className="options-table-head">
+              <span>Venue</span>
+              <span>Symbol</span>
+              <span>Expiry</span>
+              <span>Strike</span>
+              <span>Side</span>
+              <span>Settle</span>
+            </div>
+            {instruments.map((item) => (
+              <div key={`${item.venue}:${item.symbol}`} className="options-table-row">
+                <span>{item.venue}</span>
+                <span>{item.symbol}</span>
+                <span>{fmtDate(item.expiryTs)}</span>
+                <span>{fmt(item.strike, 0)}</span>
+                <span>{item.optionSide}</span>
+                <span>{item.settlementCurrency}</span>
               </div>
             ))}
           </div>
@@ -134,26 +135,32 @@ export default function OptionsDashboardPage() {
         <div className="card">
           <div className="row" style={{ marginBottom: 12 }}>
             <div>
-              <h3>What comes next</h3>
-              <div className="muted" style={{ fontSize: 12 }}>This dashboard will become the primary human-facing control surface for the options core.</div>
+              <h3>Market snapshots</h3>
+              <div className="muted" style={{ fontSize: 12 }}>Normalized top-of-book / mark / IV reads from the backend core.</div>
             </div>
+            <div className="chip">Top 24</div>
           </div>
-          <div className="grid">
-            <div className="detail-card compact">
-              <span className="field-label">Next upgrade</span>
-              <strong>Realtime websocket rail</strong>
-              <span className="muted" style={{ fontSize: 12 }}>Move from polling-backed snapshots toward live venue streaming.</span>
+          <div className="options-table">
+            <div className="options-table-head options-table-head-wide">
+              <span>Venue</span>
+              <span>Symbol</span>
+              <span>Bid</span>
+              <span>Ask</span>
+              <span>Mark</span>
+              <span>Index</span>
+              <span>IV</span>
             </div>
-            <div className="detail-card compact">
-              <span className="field-label">Soon after</span>
-              <strong>Account + risk dashboard</strong>
-              <span className="muted" style={{ fontSize: 12 }}>Balances, positions, greeks, margin posture, and venue-level health.</span>
-            </div>
-            <div className="detail-card compact">
-              <span className="field-label">Then</span>
-              <strong>Arbitrage opportunity matrix</strong>
-              <span className="muted" style={{ fontSize: 12 }}>Cross-venue strike/expiry dislocations surfaced for operator review.</span>
-            </div>
+            {snapshots.map((item) => (
+              <div key={`${item.venue}:${item.symbol}`} className="options-table-row options-table-row-wide">
+                <span>{item.venue}</span>
+                <span>{item.symbol}</span>
+                <span>{fmt(item.bidPrice, 4)}</span>
+                <span>{fmt(item.askPrice, 4)}</span>
+                <span>{fmt(item.markPrice, 4)}</span>
+                <span>{fmt(item.indexPrice, 2)}</span>
+                <span>{fmt(item.impliedVol, 4)}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

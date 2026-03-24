@@ -20,6 +20,12 @@ const workspaceCards = [
     cta: 'Open scanner',
   },
   {
+    title: 'Options core',
+    subtitle: 'Enter the multi-venue options dashboard for Binance, Deribit, OKX, and Bybit-backed backend infrastructure.',
+    href: '/options',
+    cta: 'Open options dashboard',
+  },
+  {
     title: 'Terminal settings',
     subtitle: 'Refine desk profile, risk rails, density defaults, and workflow framing like a real operator product.',
     href: '/settings',
@@ -89,7 +95,7 @@ export default function HomePage() {
               <div className="statline-pill">Majors-first execution</div>
               <div className="statline-pill">Realtime depth + fills</div>
               <div className="statline-pill">Risk-linked account surface</div>
-              <div className="statline-pill">Wallet framed onboarding</div>
+              <div className="statline-pill">4-venue options dashboard entry</div>
             </div>
           </div>
 

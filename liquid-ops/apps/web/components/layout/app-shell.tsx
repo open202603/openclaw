@@ -6,6 +6,7 @@ const nav = [
   { href: '/trade', label: 'Trade', subtitle: 'Order book, chart, ticket, fills, and position control' },
   { href: '/portfolio', label: 'Portfolio', subtitle: 'Collateral, majors mix, equity, and risk posture' },
   { href: '/markets', label: 'Markets', subtitle: 'Scanner, leadership, breadth, and rotation context' },
+  { href: '/options', label: 'Options', subtitle: 'Multi-venue options core, arbitrage surface, and risk rails' },
   { href: '/settings', label: 'Settings', subtitle: 'Workspace defaults, rails, and terminal profile' },
 ];
 

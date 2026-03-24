@@ -2,3 +2,13 @@ personal-homepage/Caddyfile
 personal-homepage/DEPLOY-CADDY.md
 .env
 *.env
+.openclaw/
+AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+memory/
+options-trading-system/data/

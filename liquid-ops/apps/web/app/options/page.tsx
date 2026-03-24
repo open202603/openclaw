@@ -208,6 +208,9 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
             </div>
             <div className="chip">{balances.length}</div>
           </div>
+          <div className="muted" style={{ fontSize: 11, marginBottom: 12 }}>
+            Last account sync: {accountData ? new Date(accountData.generatedAt).toISOString() : '—'}
+          </div>
           {balances.length ? (
             <div className="options-table">
               <div className="options-table-head">
@@ -219,7 +222,7 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
                 </div>
               ))}
             </div>
-          ) : <div className="empty-state">No balances yet — configure Deribit credentials to populate this panel.</div>}
+          ) : <div className="empty-state">No balances yet — either Deribit credentials are not configured, or the authenticated account currently has no option balance state to report.</div>}
         </div>
 
         <div className="card">
@@ -241,7 +244,7 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
                 </div>
               ))}
             </div>
-          ) : <div className="empty-state">No positions yet — this fills in once read-only private account sync has real credentials.</div>}
+          ) : <div className="empty-state">No positions yet — once authenticated Deribit account sync is active, live option positions will appear here.</div>}
         </div>
       </div>
 
@@ -265,7 +268,7 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
                 </div>
               ))}
             </div>
-          ) : <div className="empty-state">No open orders yet — this panel is waiting for authenticated read-only order sync.</div>}
+          ) : <div className="empty-state">No open orders yet — this panel is waiting for authenticated Deribit order-state sync.</div>}
         </div>
 
         <div className="card">
@@ -287,7 +290,7 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
                 </div>
               ))}
             </div>
-          ) : <div className="empty-state">No fills yet — once private account sync is authenticated, recent fills will appear here.</div>}
+          ) : <div className="empty-state">No fills yet — once Deribit private trade history is available, recent option fills will appear here.</div>}
         </div>
       </div>
     </div>

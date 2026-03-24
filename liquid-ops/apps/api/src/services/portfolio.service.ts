@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { AccountSnapshot, OrderRecord, PortfolioSnapshot, Position } from '@liquid-ops/types';
+import type { AccountSnapshot, DepositResponse, OrderRecord, PortfolioSnapshot, Position } from '@liquid-ops/types';
 import type { MarketDataService } from './market-data.service.js';
 import type { PersistenceService } from './persistence.service.js';
 
@@ -165,6 +165,22 @@ export class PortfolioService extends EventEmitter {
   getPortfolioHistory(accountId: string) {
     this.ensureAccount(accountId);
     return this.persistence.getHistory(accountId, 60);
+  }
+
+  depositFunds(accountId: string, amount: number): DepositResponse {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Deposit amount must be greater than zero');
+    }
+
+    const account = this.ensureAccount(accountId);
+    account.startingEquity = round(account.startingEquity + amount);
+    this.persistence.saveAccount(account);
+
+    const portfolio = this.refreshAccount(accountId, { emit: true, recordHistory: true });
+    return {
+      amount: round(amount),
+      portfolio,
+    };
   }
 
   applyOrderFill(order: OrderRecord) {

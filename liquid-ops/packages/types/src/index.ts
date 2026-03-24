@@ -69,6 +69,11 @@ export type SimulatedOrderRequest = {
   leverage: number;
 };
 
+export type DepositRequest = {
+  accountId: string;
+  amount: number;
+};
+
 export type OrderStatus = 'open' | 'filled' | 'canceled';
 
 export type OrderRecord = {
@@ -114,4 +119,9 @@ export type PlaceOrderResponse = {
   position: Position | null;
   portfolio: PortfolioSnapshot;
   marketSnapshot: Market | null;
+};
+
+export type DepositResponse = {
+  amount: number;
+  portfolio: PortfolioSnapshot;
 };

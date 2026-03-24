@@ -1,5 +1,6 @@
 import type {
   Candle,
+  DepositResponse,
   OrderBookSnapshot,
   PlaceOrderResponse,
   PortfolioHistoryPoint,
@@ -45,6 +46,21 @@ export async function fetchPortfolio(accountId: string) {
 
 export async function fetchPortfolioHistory(accountId: string) {
   return getJson<{ history: PortfolioHistoryPoint[] }>(`/portfolio/${accountId}/history`);
+}
+
+export async function depositFunds(accountId: string, amount: number) {
+  const response = await fetch(`${API_URL}/portfolio/${accountId}/deposit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ amount }),
+  });
+
+  const body = (await response.json()) as DepositResponse | { message?: string };
+  if (!response.ok) {
+    throw new Error('message' in body && body.message ? body.message : 'Deposit request failed');
+  }
+
+  return body as DepositResponse;
 }
 
 export async function placeOrder(payload: SimulatedOrderRequest) {

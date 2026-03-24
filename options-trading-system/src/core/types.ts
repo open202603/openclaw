@@ -51,6 +51,36 @@ export interface VenuePosition {
   theta?: number;
 }
 
+export interface VenueOrder {
+  venue: Venue;
+  orderId: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  price: number;
+  quantity: number;
+  status: 'open' | 'filled' | 'cancelled' | 'rejected' | 'partial';
+  timestamp: number;
+}
+
+export interface VenueFill {
+  venue: Venue;
+  fillId: string;
+  orderId: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  price: number;
+  quantity: number;
+  fee?: number;
+  timestamp: number;
+}
+
+export interface VenueCredentials {
+  apiKey?: string;
+  apiSecret?: string;
+  passphrase?: string;
+  enabled: boolean;
+}
+
 export interface PlaceOrderRequest {
   venue: Venue;
   symbol: string;

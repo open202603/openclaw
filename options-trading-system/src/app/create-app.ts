@@ -1,4 +1,5 @@
 import { loadConfig } from '../config/load-config.js';
+import { AccountReadinessService } from '../services/account-readiness-service.js';
 import { AccountService } from '../services/account-service.js';
 import { ExecutionService } from '../services/execution-service.js';
 import { InstrumentRegistry } from '../services/instrument-registry.js';
@@ -24,6 +25,7 @@ export function createApp() {
   const instrumentRegistry = new InstrumentRegistry(adapters);
   const marketDataService = new MarketDataService(adapters, config.marketDataRefreshMs);
   const accountService = new AccountService(adapters);
+  const accountReadinessService = new AccountReadinessService(config.credentials);
   const riskEngine = new RiskEngine(config.risk);
   const executionService = new ExecutionService({ mode: config.executionMode, adapters, riskEngine });
 
@@ -42,6 +44,7 @@ export function createApp() {
       await instrumentRegistry.loadAll();
       await marketDataService.start();
       await accountService.start();
+      console.log('[accounts] venue credential readiness =', accountReadinessService.getSummary());
 
       for (const strategy of strategies) {
         strategy.register({ marketDataService, accountService, executionService, riskEngine });

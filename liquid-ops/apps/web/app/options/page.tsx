@@ -101,6 +101,30 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
         </div>
       ) : null}
 
+      <div className="command-strip command-strip-pro">
+        <div className="card command-card command-card-pro">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Execution posture</div>
+          <h3>Paper-first, real-market-backed</h3>
+          <div className="muted" style={{ fontSize: 13, lineHeight: 1.75 }}>
+            Live public market data is already flowing. The next real-trading step is private account connectivity, then execution, then kill-switch and risk gating.
+          </div>
+        </div>
+        <div className="card command-card command-card-pro">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Account readiness</div>
+          <h3>Private venue rails pending</h3>
+          <div className="muted" style={{ fontSize: 13, lineHeight: 1.75 }}>
+            This dashboard will next grow balances, positions, open orders, fills, and risk posture once read-only private APIs are wired in.
+          </div>
+        </div>
+        <div className="card command-card command-card-pro">
+          <div className="eyebrow" style={{ marginBottom: 10 }}>Risk rail</div>
+          <h3>Kill-switch path planned</h3>
+          <div className="muted" style={{ fontSize: 13, lineHeight: 1.75 }}>
+            Real trading will not be enabled before venue health gating, order-state discipline, and explicit risk controls are in the loop.
+          </div>
+        </div>
+      </div>
+
       <div className="data-rack data-rack-pro">
         <div className="card">
           <div className="row" style={{ marginBottom: 12 }}>

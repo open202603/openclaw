@@ -5,6 +5,8 @@ import type {
   PlaceOrderRequest,
   Venue,
   VenueBalance,
+  VenueFill,
+  VenueOrder,
   VenuePosition,
 } from './types.js';
 
@@ -15,6 +17,8 @@ export interface VenueAdapter {
   refreshMarketData?(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void>;
   syncBalances(): Promise<VenueBalance[]>;
   syncPositions(): Promise<VenuePosition[]>;
+  syncOpenOrders?(): Promise<VenueOrder[]>;
+  syncFills?(): Promise<VenueFill[]>;
   placeOrder(request: PlaceOrderRequest): Promise<{ orderId: string }>;
   cancelOrder(request: CancelOrderRequest): Promise<void>;
 }

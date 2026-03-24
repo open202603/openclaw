@@ -1,0 +1,21 @@
+{
+  "generatedAt": 1774335771917,
+  "readiness": [
+    {
+      "venue": "binance-options",
+      "enabled": false
+    },
+    {
+      "venue": "deribit",
+      "enabled": false
+    },
+    {
+      "venue": "okx-options",
+      "enabled": false
+    },
+    {
+      "venue": "bybit-options",
+      "enabled": false
+    }
+  ]
+}

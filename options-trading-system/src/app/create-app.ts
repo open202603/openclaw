@@ -17,7 +17,11 @@ export function createApp() {
 
   const adapters = [
     new BinanceOptionsAdapter(),
-    new DeribitOptionsAdapter(),
+    new DeribitOptionsAdapter({
+      apiKey: config.credentials.deribit.apiKey,
+      apiSecret: config.credentials.deribit.apiSecret,
+      enabled: config.credentials.deribit.enabled,
+    }),
     new OkxOptionsAdapter(),
     new BybitOptionsAdapter(),
   ];

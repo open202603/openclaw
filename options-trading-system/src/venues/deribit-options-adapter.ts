@@ -7,6 +7,14 @@ import { getJson } from '../utils/http.js';
 export class DeribitOptionsAdapter implements VenueAdapter {
   readonly venue = 'deribit' as const;
 
+  constructor(
+    private readonly privateConfig: {
+      apiKey?: string;
+      apiSecret?: string;
+      enabled?: boolean;
+    } = {},
+  ) {}
+
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
     const payload = await getJson<{
       result: Array<{
@@ -47,10 +55,22 @@ export class DeribitOptionsAdapter implements VenueAdapter {
   }
 
   async syncBalances(): Promise<VenueBalance[]> {
+    if (!this.privateConfig.enabled) return [];
     return [];
   }
 
   async syncPositions(): Promise<VenuePosition[]> {
+    if (!this.privateConfig.enabled) return [];
+    return [];
+  }
+
+  async syncOpenOrders() {
+    if (!this.privateConfig.enabled) return [];
+    return [];
+  }
+
+  async syncFills() {
+    if (!this.privateConfig.enabled) return [];
     return [];
   }
 

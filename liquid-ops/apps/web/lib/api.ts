@@ -119,3 +119,10 @@ export async function fetchOptionsLiveData() {
     }>;
   }>('/options/live');
 }
+
+export async function fetchOptionsAccountReadiness() {
+  return getJson<{
+    generatedAt: number;
+    readiness: Array<{ venue: string; enabled: boolean }>;
+  }>('/options/account-readiness');
+}

@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import { registerHealthRoutes } from './modules/health/routes.js';
 import { registerMarketRoutes } from './modules/markets/routes.js';
+import { registerOptionsAccountRoutes } from './modules/options/account-routes.js';
 import { registerOptionsRoutes } from './modules/options/routes.js';
 import { registerOrderRoutes } from './modules/orders/routes.js';
 import { registerPortfolioRoutes } from './modules/portfolio/routes.js';
@@ -28,6 +29,7 @@ registerMarketRoutes(app);
 registerOrderRoutes(app);
 registerPortfolioRoutes(app);
 registerOptionsRoutes(app);
+registerOptionsAccountRoutes(app);
 registerWsRoutes(app);
 
 const port = Number(process.env.PORT ?? 4000);

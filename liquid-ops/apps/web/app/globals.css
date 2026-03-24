@@ -513,6 +513,15 @@ strong { letter-spacing: -0.01em; }
   border: 1px solid rgba(129, 153, 191, 0.1);
   background: rgba(255, 255, 255, 0.02);
 }
+
+.empty-state {
+  border: 1px dashed rgba(129, 153, 191, 0.16);
+  border-radius: 12px;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.015);
+}
 .page-columns-2 { grid-template-columns: 1.18fr 0.82fr; }
 .page-columns-3 { grid-template-columns: 1.1fr 0.95fr 0.9fr; }
 .settings-grid { grid-template-columns: 1.12fr 0.88fr; }

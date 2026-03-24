@@ -126,3 +126,13 @@ export async function fetchOptionsAccountReadiness() {
     readiness: Array<{ venue: string; enabled: boolean }>;
   }>('/options/account-readiness');
 }
+
+export async function fetchOptionsAccountData() {
+  return getJson<{
+    generatedAt: number;
+    balances: Array<{ venue: string; currency: string; total: number; available: number }>;
+    positions: Array<{ venue: string; symbol: string; size: number; avgPrice: number; delta?: number; gamma?: number; vega?: number; theta?: number }>;
+    openOrders: Array<{ venue: string; orderId: string; symbol: string; side: 'buy' | 'sell'; price: number; quantity: number; status: string; timestamp: number }>;
+    fills: Array<{ venue: string; fillId: string; orderId: string; symbol: string; side: 'buy' | 'sell'; price: number; quantity: number; fee?: number; timestamp: number }>;
+  }>('/options/account-data');
+}

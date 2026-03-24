@@ -3,9 +3,11 @@ import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, Pl
 import { normalizeDeribitBookSummary } from '../core/market-normalizers.js';
 import { normalizeDeribitOptionInstrument } from '../core/normalizers.js';
 import { getJson } from '../utils/http.js';
+import { DeribitPrivateClient } from './deribit-private-client.js';
 
 export class DeribitOptionsAdapter implements VenueAdapter {
   readonly venue = 'deribit' as const;
+  private readonly privateClient: DeribitPrivateClient;
 
   constructor(
     private readonly privateConfig: {
@@ -13,7 +15,13 @@ export class DeribitOptionsAdapter implements VenueAdapter {
       apiSecret?: string;
       enabled?: boolean;
     } = {},
-  ) {}
+  ) {
+    this.privateClient = new DeribitPrivateClient({
+      apiKey: privateConfig.apiKey,
+      apiSecret: privateConfig.apiSecret,
+      enabled: Boolean(privateConfig.enabled),
+    });
+  }
 
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
     const payload = await getJson<{
@@ -56,22 +64,70 @@ export class DeribitOptionsAdapter implements VenueAdapter {
 
   async syncBalances(): Promise<VenueBalance[]> {
     if (!this.privateConfig.enabled) return [];
-    return [];
+    const payload = await this.privateClient.getAccountSummary('BTC');
+    if (!payload?.result?.currency) return [];
+    return [{
+      venue: this.venue,
+      currency: payload.result.currency,
+      total: payload.result.balance ?? 0,
+      available: payload.result.available_funds ?? 0,
+    }];
   }
 
   async syncPositions(): Promise<VenuePosition[]> {
     if (!this.privateConfig.enabled) return [];
-    return [];
+    const payload = await this.privateClient.getPositions('BTC');
+    return (payload?.result ?? []).map((item) => ({
+      venue: this.venue,
+      symbol: item.instrument_name,
+      size: item.size,
+      avgPrice: item.average_price ?? 0,
+      delta: item.delta,
+      gamma: item.gamma,
+      vega: item.vega,
+      theta: item.theta,
+    }));
   }
 
   async syncOpenOrders() {
     if (!this.privateConfig.enabled) return [];
-    return [];
+    const payload = await this.privateClient.getOpenOrders('BTC');
+    return (payload?.result ?? []).map((item) => ({
+      venue: this.venue,
+      orderId: item.order_id,
+      symbol: item.instrument_name,
+      side: item.direction,
+      price: item.price,
+      quantity: item.amount,
+      status: (
+        item.order_state === 'open'
+          ? 'open'
+          : item.order_state === 'filled'
+            ? 'filled'
+            : item.order_state === 'cancelled'
+              ? 'cancelled'
+              : item.order_state === 'rejected'
+                ? 'rejected'
+                : 'partial'
+      ) as 'open' | 'filled' | 'cancelled' | 'rejected' | 'partial',
+      timestamp: item.creation_timestamp,
+    }));
   }
 
   async syncFills() {
     if (!this.privateConfig.enabled) return [];
-    return [];
+    const payload = await this.privateClient.getUserTrades('BTC');
+    return (payload?.result?.trades ?? []).map((item) => ({
+      venue: this.venue,
+      fillId: item.trade_id,
+      orderId: item.order_id,
+      symbol: item.instrument_name,
+      side: item.direction,
+      price: item.price,
+      quantity: item.amount,
+      fee: item.fee,
+      timestamp: item.timestamp,
+    }));
   }
 
   async placeOrder(_request: PlaceOrderRequest): Promise<{ orderId: string }> {

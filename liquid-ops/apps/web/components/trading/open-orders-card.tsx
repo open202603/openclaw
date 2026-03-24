@@ -20,10 +20,11 @@ export function OpenOrdersCard({
   const reservedMargin = orders.reduce((sum, order) => sum + (order.reservedMargin ?? 0), 0);
 
   return (
-    <div className="card">
+    <div className="card execution-stack-card">
       <div className="row" style={{ marginBottom: 12 }}>
         <div>
-          <h3>Open Orders</h3>
+          <div className="eyebrow">Execution stack</div>
+          <h3 style={{ marginTop: 6 }}>Open Orders</h3>
           <div className="muted" style={{ fontSize: 12 }}>Resting limit and stop-market orders waiting for price</div>
         </div>
         <div className="muted" style={{ fontSize: 12 }}>{orders.length} live</div>

@@ -154,10 +154,11 @@ export function OrderTicket({
   }
 
   return (
-    <div className="card">
+    <div className="card execution-stack-card order-ticket-pro">
       <div className="row" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div>
-          <h3>Order Entry</h3>
+          <div className="eyebrow">Execution rail</div>
+          <h3 style={{ marginTop: 6 }}>Order Entry</h3>
           <div className="muted" style={{ fontSize: 12 }}>{market.symbol} • major-asset execution with market fills now and resting limit / stop orders</div>
         </div>
         <div className={`pill ${draft.side === 'buy' ? 'buy' : 'sell'}`}>{intentLabel}</div>

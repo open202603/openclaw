@@ -19,10 +19,11 @@ export function PriceChartCard({ candles }: { candles: Candle[] }) {
   const volume = candles.slice(-6).reduce((sum, candle) => sum + candle.volume, 0);
 
   return (
-    <div className="card">
+    <div className="card chart-card-pro">
       <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
         <div>
-          <h3>Price Chart</h3>
+          <div className="eyebrow">Primary battle zone</div>
+          <h3 style={{ marginTop: 6 }}>Price Chart</h3>
           <div className="muted" style={{ fontSize: 12 }}>{candles.length} x 1m candles • last close {formatCurrency(latest.close)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>

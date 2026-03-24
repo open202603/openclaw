@@ -2,7 +2,9 @@ import { loadConfig } from '../config/load-config.js';
 import { AccountReadinessService } from '../services/account-readiness-service.js';
 import { AccountService } from '../services/account-service.js';
 import { ExecutionService } from '../services/execution-service.js';
+import { ExecutionStateService } from '../services/execution-state-service.js';
 import { InstrumentRegistry } from '../services/instrument-registry.js';
+import { KillSwitchService } from '../services/kill-switch-service.js';
 import { MarketDataService } from '../services/market-data-service.js';
 import { RiskEngine } from '../services/risk-engine.js';
 import { ArbitrageStrategy } from '../strategies/arbitrage-strategy.js';
@@ -31,7 +33,9 @@ export function createApp() {
   const accountService = new AccountService(adapters);
   const accountReadinessService = new AccountReadinessService(config.credentials);
   const riskEngine = new RiskEngine(config.risk);
-  const executionService = new ExecutionService({ mode: config.executionMode, adapters, riskEngine });
+  const killSwitch = new KillSwitchService(config.risk.killSwitchEnabled);
+  const executionState = new ExecutionStateService();
+  const executionService = new ExecutionService({ mode: config.executionMode, adapters, riskEngine, killSwitch, executionState });
 
   const strategies = [
     new ArbitrageStrategy(),
@@ -43,6 +47,7 @@ export function createApp() {
       console.log('[app] starting options trading system');
       console.log('[app] execution mode =', config.executionMode);
       console.log('[app] market data refresh ms =', config.marketDataRefreshMs);
+      console.log('[app] kill switch =', killSwitch.isEnabled() ? 'ENGAGED' : 'released');
       console.log('[app] venues =', adapters.map((adapter) => adapter.venue).join(', '));
 
       await instrumentRegistry.loadAll();

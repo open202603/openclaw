@@ -5,6 +5,9 @@ const envSchema = z.object({
   MAX_DELTA: z.coerce.number().default(5),
   MAX_VEGA: z.coerce.number().default(10000),
   MAX_OPEN_ORDERS: z.coerce.number().default(200),
+  MAX_ORDER_NOTIONAL: z.coerce.number().default(50000),
+  MAX_DAILY_LOSS: z.coerce.number().default(10000),
+  KILL_SWITCH_ENABLED: z.coerce.boolean().default(false),
   MARKET_DATA_REFRESH_MS: z.coerce.number().default(30000),
   BINANCE_API_KEY: z.string().optional(),
   BINANCE_API_SECRET: z.string().optional(),
@@ -33,6 +36,9 @@ export function loadConfig() {
       maxDelta: env.MAX_DELTA,
       maxVega: env.MAX_VEGA,
       maxOpenOrders: env.MAX_OPEN_ORDERS,
+      maxOrderNotional: env.MAX_ORDER_NOTIONAL,
+      maxDailyLoss: env.MAX_DAILY_LOSS,
+      killSwitchEnabled: env.KILL_SWITCH_ENABLED,
     },
   };
 }

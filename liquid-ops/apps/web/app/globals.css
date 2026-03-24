@@ -151,6 +151,28 @@ strong { letter-spacing: -0.01em; }
   padding: 12px;
   gap: 10px;
 }
+
+.grid-terminal-pro {
+  grid-template-columns: 0.95fr 1.1fr 1fr;
+  align-items: start;
+}
+
+.terminal-column {
+  display: grid;
+  gap: 10px;
+}
+
+.terminal-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+.execution-link-card {
+  background: linear-gradient(180deg, rgba(10,18,30,0.96), rgba(7,13,22,0.92));
+}
 .topbar {
   display: flex;
   justify-content: space-between;

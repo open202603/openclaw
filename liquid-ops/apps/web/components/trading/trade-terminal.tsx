@@ -479,14 +479,19 @@ export function TradeTerminal({
           </div>
         </div>
       ) : (
-        <div className="grid grid-terminal">
-          {marketPanel}
-          <div className="grid">
+        <div className="grid grid-terminal grid-terminal-pro">
+          <div className="terminal-column terminal-column-left">
+            <div className="terminal-section-label">Scanner + depth</div>
+            {marketPanel}
+          </div>
+          <div className="terminal-column terminal-column-center">
+            <div className="terminal-section-label">Chart + positions</div>
             <PriceChartCard candles={candles} />
             <PositionsTable positions={portfolio?.positions ?? []} selectedSymbol={selectedSymbol} />
             <PortfolioHistoryCard history={portfolio?.history ?? []} />
           </div>
-          <div className="grid">
+          <div className="terminal-column terminal-column-right">
+            <div className="terminal-section-label">Execution + account impact</div>
             {selectedMarket && portfolio && executionSummary ? (
               <OrderTicket
                 market={selectedMarket}
@@ -500,11 +505,12 @@ export function TradeTerminal({
               />
             ) : null}
             {selectedMarket && portfolio && executionSummary ? (
-              <div className="card">
+              <div className="card execution-link-card">
                 <div className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
                   <div>
-                    <h3>Execution Link</h3>
-                    <div className="muted" style={{ fontSize: 12 }}>Order entry, live orders, fills, and collateral usage tied directly to {selectedMarket.symbol}</div>
+                    <div className="eyebrow">Execution link</div>
+                    <h3 style={{ marginTop: 6 }}>Order state bound to {selectedMarket.symbol}</h3>
+                    <div className="muted" style={{ fontSize: 12 }}>Ticket, active orders, recent fills, and collateral drag all stay visible in one lane.</div>
                   </div>
                   <div className="muted" style={{ fontSize: 12 }}>{executionSummary.liveOrders} live / {selectedOrderFlow.length} recent</div>
                 </div>

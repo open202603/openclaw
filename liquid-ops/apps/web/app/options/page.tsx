@@ -1,4 +1,9 @@
-import { fetchOptionsAccountData, fetchOptionsAccountReadiness, fetchOptionsLiveData } from '../../lib/api';
+import {
+  fetchOptionsAccountData,
+  fetchOptionsAccountReadiness,
+  fetchOptionsLiveData,
+  fetchOptionsRiskStatus,
+} from '../../lib/api';
 
 function fmt(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
@@ -21,17 +26,20 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
   let liveData: Awaited<ReturnType<typeof fetchOptionsLiveData>> | null = null;
   let readiness: Awaited<ReturnType<typeof fetchOptionsAccountReadiness>> | null = null;
   let accountData: Awaited<ReturnType<typeof fetchOptionsAccountData>> | null = null;
+  let riskStatus: Awaited<ReturnType<typeof fetchOptionsRiskStatus>> | null = null;
   let loadError: string | null = null;
 
   try {
-    const [live, ready, account] = await Promise.all([
+    const [live, ready, account, risk] = await Promise.all([
       fetchOptionsLiveData(),
       fetchOptionsAccountReadiness(),
       fetchOptionsAccountData(),
+      fetchOptionsRiskStatus(),
     ]);
     liveData = live;
     readiness = ready;
     accountData = account;
+    riskStatus = risk;
   } catch (error) {
     loadError = error instanceof Error ? error.message : 'Failed to load options dashboard data';
   }
@@ -54,13 +62,13 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
               Live multi-venue crypto options dashboard across Binance, Deribit, OKX, and Bybit.
             </h2>
             <p className="muted" style={{ maxWidth: 820, fontSize: 15, lineHeight: 1.75 }}>
-              Liquid Ops is now the operator-facing web entry for the options backend. Public market data is live, private account readiness is surfaced, and the dashboard now has dedicated rails for balances, positions, orders, and fills.
+              Liquid Ops is now the operator-facing web entry for the options backend. Public market data, account readiness, account data rails, and execution/risk status now live on one page.
             </p>
             <div className="terminal-statline terminal-statline-pro">
               <div className="statline-pill">{liveData ? `${liveData.instruments.length} instruments` : 'No instrument feed'}</div>
               <div className="statline-pill">{liveData ? `${liveData.snapshots.length} snapshots` : 'No snapshot feed'}</div>
               <div className="statline-pill">{venues.length ? `${venues.length} venues live` : 'Venue feed pending'}</div>
-              <div className="statline-pill">{readiness ? `${readiness.readiness.filter((item) => item.enabled).length} private rails ready` : 'No private rails'}</div>
+              <div className="statline-pill">{riskStatus?.killSwitchEnabled ? 'Kill switch engaged' : 'Kill switch released'}</div>
             </div>
           </div>
 
@@ -73,22 +81,10 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
               <div className="chip">Options core</div>
             </div>
             <div className="grid">
-              <div className="list-card-row" style={{ paddingTop: 0 }}>
-                <div><strong>Live export</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Public market payload</div></div>
-                <div>{liveData ? new Date(liveData.generatedAt).toISOString() : '—'}</div>
-              </div>
-              <div className="list-card-row" style={{ paddingTop: 0 }}>
-                <div><strong>Account export</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Private account payload</div></div>
-                <div>{accountData ? new Date(accountData.generatedAt).toISOString() : '—'}</div>
-              </div>
-              <div className="list-card-row" style={{ paddingTop: 0 }}>
-                <div><strong>Credential readiness</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Private rail configuration</div></div>
-                <div>{readiness ? `${readiness.readiness.filter((item) => item.enabled).length}/${readiness.readiness.length}` : '—'}</div>
-              </div>
-              <div className="list-card-row" style={{ paddingTop: 0 }}>
-                <div><strong>Load state</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Front-end read from API</div></div>
-                <div>{loadError ? 'Error' : 'Healthy'}</div>
-              </div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}><div><strong>Execution mode</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Current order rail</div></div><div>{riskStatus?.executionMode ?? '—'}</div></div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}><div><strong>Open order count</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Execution state snapshot</div></div><div>{riskStatus?.executionState.openOrderCount ?? 0}</div></div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}><div><strong>Account export</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Private account payload</div></div><div>{accountData ? new Date(accountData.generatedAt).toISOString() : '—'}</div></div>
+              <div className="list-card-row" style={{ paddingTop: 0 }}><div><strong>Load state</strong><div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Front-end read from API</div></div><div>{loadError ? 'Error' : 'Healthy'}</div></div>
             </div>
           </div>
         </div>
@@ -104,9 +100,9 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
       <div className="command-strip command-strip-pro">
         <div className="card command-card command-card-pro">
           <div className="eyebrow" style={{ marginBottom: 10 }}>Execution posture</div>
-          <h3>Paper-first, real-market-backed</h3>
+          <h3>{riskStatus?.executionMode === 'live' ? 'Live execution rail' : 'Paper-first execution rail'}</h3>
           <div className="muted" style={{ fontSize: 13, lineHeight: 1.75 }}>
-            Live public market data is already flowing. The next real-trading step is private account connectivity, then execution, then kill-switch and risk gating.
+            Order flow is now explicitly framed by execution mode, open-order state, and kill-switch visibility.
           </div>
         </div>
         <div className="card command-card command-card-pro">
@@ -118,12 +114,37 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
         </div>
         <div className="card command-card command-card-pro">
           <div className="eyebrow" style={{ marginBottom: 10 }}>Risk rail</div>
-          <h3>Kill-switch path planned</h3>
+          <h3>{riskStatus?.killSwitchEnabled ? 'Kill switch engaged' : 'Kill switch released'}</h3>
           <div className="muted" style={{ fontSize: 13, lineHeight: 1.75 }}>
-            Real trading will not be enabled before venue health gating, order-state discipline, and explicit risk controls are in the loop.
+            Max open orders: {riskStatus?.limits.maxOpenOrders ?? '—'} · Max order notional: {riskStatus ? fmt(riskStatus.limits.maxOrderNotional, 0) : '—'} · Max daily loss: {riskStatus ? fmt(riskStatus.limits.maxDailyLoss, 0) : '—'}
           </div>
         </div>
       </div>
+
+      {riskStatus ? (
+        <div className="card">
+          <div className="row" style={{ marginBottom: 12 }}>
+            <div>
+              <h3>Execution & risk limits</h3>
+              <div className="muted" style={{ fontSize: 12 }}>Backend execution posture and risk caps exported from the trading core.</div>
+            </div>
+            <div className="chip">Risk status</div>
+          </div>
+          <div className="options-table">
+            <div className="options-table-head">
+              <span>Execution mode</span><span>Kill switch</span><span>Max open orders</span><span>Max notional</span><span>Max daily loss</span><span>Open order count</span>
+            </div>
+            <div className="options-table-row">
+              <span>{riskStatus.executionMode}</span>
+              <span>{riskStatus.killSwitchEnabled ? 'engaged' : 'released'}</span>
+              <span>{riskStatus.limits.maxOpenOrders}</span>
+              <span>{fmt(riskStatus.limits.maxOrderNotional, 0)}</span>
+              <span>{fmt(riskStatus.limits.maxDailyLoss, 0)}</span>
+              <span>{riskStatus.executionState.openOrderCount}</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {readiness ? (
         <div className="card">
@@ -136,21 +157,11 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
           </div>
           <div className="options-table">
             <div className="options-table-head">
-              <span>Venue</span>
-              <span>Status</span>
-              <span>Mode</span>
-              <span></span>
-              <span></span>
-              <span></span>
+              <span>Venue</span><span>Status</span><span>Mode</span><span></span><span></span><span></span>
             </div>
             {readiness.readiness.map((item) => (
               <div key={item.venue} className="options-table-row">
-                <span>{item.venue}</span>
-                <span>{item.enabled ? 'configured' : 'missing'}</span>
-                <span>{item.enabled ? 'private rail possible' : 'public only'}</span>
-                <span></span>
-                <span></span>
-                <span></span>
+                <span>{item.venue}</span><span>{item.enabled ? 'configured' : 'missing'}</span><span>{item.enabled ? 'private rail possible' : 'public only'}</span><span></span><span></span><span></span>
               </div>
             ))}
           </div>
@@ -159,138 +170,41 @@ export default async function OptionsDashboardPage(_props: OptionPageProps) {
 
       <div className="data-rack data-rack-pro">
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Normalized instruments</h3>
-              <div className="muted" style={{ fontSize: 12 }}>BTC options contracts already flowing through the shared model.</div>
-            </div>
-            <div className="chip">Top 24</div>
-          </div>
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Normalized instruments</h3><div className="muted" style={{ fontSize: 12 }}>BTC options contracts already flowing through the shared model.</div></div><div className="chip">Top 24</div></div>
           <div className="options-table">
-            <div className="options-table-head">
-              <span>Venue</span><span>Symbol</span><span>Expiry</span><span>Strike</span><span>Side</span><span>Settle</span>
-            </div>
-            {instruments.map((item) => (
-              <div key={`${item.venue}:${item.symbol}`} className="options-table-row">
-                <span>{item.venue}</span><span>{item.symbol}</span><span>{fmtDate(item.expiryTs)}</span><span>{fmt(item.strike, 0)}</span><span>{item.optionSide}</span><span>{item.settlementCurrency}</span>
-              </div>
-            ))}
+            <div className="options-table-head"><span>Venue</span><span>Symbol</span><span>Expiry</span><span>Strike</span><span>Side</span><span>Settle</span></div>
+            {instruments.map((item) => (<div key={`${item.venue}:${item.symbol}`} className="options-table-row"><span>{item.venue}</span><span>{item.symbol}</span><span>{fmtDate(item.expiryTs)}</span><span>{fmt(item.strike, 0)}</span><span>{item.optionSide}</span><span>{item.settlementCurrency}</span></div>))}
           </div>
         </div>
-
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Market snapshots</h3>
-              <div className="muted" style={{ fontSize: 12 }}>Normalized top-of-book / mark / IV reads from the backend core.</div>
-            </div>
-            <div className="chip">Top 24</div>
-          </div>
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Market snapshots</h3><div className="muted" style={{ fontSize: 12 }}>Normalized top-of-book / mark / IV reads from the backend core.</div></div><div className="chip">Top 24</div></div>
           <div className="options-table">
-            <div className="options-table-head options-table-head-wide">
-              <span>Venue</span><span>Symbol</span><span>Bid</span><span>Ask</span><span>Mark</span><span>Index</span><span>IV</span>
-            </div>
-            {snapshots.map((item) => (
-              <div key={`${item.venue}:${item.symbol}`} className="options-table-row options-table-row-wide">
-                <span>{item.venue}</span><span>{item.symbol}</span><span>{fmt(item.bidPrice, 4)}</span><span>{fmt(item.askPrice, 4)}</span><span>{fmt(item.markPrice, 4)}</span><span>{fmt(item.indexPrice, 2)}</span><span>{fmt(item.impliedVol, 4)}</span>
-              </div>
-            ))}
+            <div className="options-table-head options-table-head-wide"><span>Venue</span><span>Symbol</span><span>Bid</span><span>Ask</span><span>Mark</span><span>Index</span><span>IV</span></div>
+            {snapshots.map((item) => (<div key={`${item.venue}:${item.symbol}`} className="options-table-row options-table-row-wide"><span>{item.venue}</span><span>{item.symbol}</span><span>{fmt(item.bidPrice, 4)}</span><span>{fmt(item.askPrice, 4)}</span><span>{fmt(item.markPrice, 4)}</span><span>{fmt(item.indexPrice, 2)}</span><span>{fmt(item.impliedVol, 4)}</span></div>))}
           </div>
         </div>
       </div>
 
       <div className="data-rack data-rack-pro">
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Account balances</h3>
-              <div className="muted" style={{ fontSize: 12 }}>Read-only private balance export from the options backend.</div>
-            </div>
-            <div className="chip">{balances.length}</div>
-          </div>
-          <div className="muted" style={{ fontSize: 11, marginBottom: 12 }}>
-            Last account sync: {accountData ? new Date(accountData.generatedAt).toISOString() : '—'}
-          </div>
-          {balances.length ? (
-            <div className="options-table">
-              <div className="options-table-head">
-                <span>Venue</span><span>Currency</span><span>Total</span><span>Available</span><span></span><span></span>
-              </div>
-              {balances.map((item, idx) => (
-                <div key={`${item.venue}:${item.currency}:${idx}`} className="options-table-row">
-                  <span>{item.venue}</span><span>{item.currency}</span><span>{fmt(item.total, 6)}</span><span>{fmt(item.available, 6)}</span><span></span><span></span>
-                </div>
-              ))}
-            </div>
-          ) : <div className="empty-state">No balances yet — either Deribit credentials are not configured, or the authenticated account currently has no option balance state to report.</div>}
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Account balances</h3><div className="muted" style={{ fontSize: 12 }}>Read-only private balance export from the options backend.</div></div><div className="chip">{balances.length}</div></div>
+          <div className="muted" style={{ fontSize: 11, marginBottom: 12 }}>Last account sync: {accountData ? new Date(accountData.generatedAt).toISOString() : '—'}</div>
+          {balances.length ? (<div className="options-table"><div className="options-table-head"><span>Venue</span><span>Currency</span><span>Total</span><span>Available</span><span></span><span></span></div>{balances.map((item, idx) => (<div key={`${item.venue}:${item.currency}:${idx}`} className="options-table-row"><span>{item.venue}</span><span>{item.currency}</span><span>{fmt(item.total, 6)}</span><span>{fmt(item.available, 6)}</span><span></span><span></span></div>))}</div>) : <div className="empty-state">No balances yet — either Deribit credentials are not configured, or the authenticated account currently has no option balance state to report.</div>}
         </div>
-
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Open positions</h3>
-              <div className="muted" style={{ fontSize: 12 }}>Read-only options positions once private account sync is active.</div>
-            </div>
-            <div className="chip">{positions.length}</div>
-          </div>
-          {positions.length ? (
-            <div className="options-table">
-              <div className="options-table-head options-table-head-wide">
-                <span>Venue</span><span>Symbol</span><span>Size</span><span>Avg</span><span>Delta</span><span>Gamma</span><span>Vega</span>
-              </div>
-              {positions.map((item) => (
-                <div key={`${item.venue}:${item.symbol}`} className="options-table-row options-table-row-wide">
-                  <span>{item.venue}</span><span>{item.symbol}</span><span>{fmt(item.size, 4)}</span><span>{fmt(item.avgPrice, 4)}</span><span>{fmt(item.delta, 4)}</span><span>{fmt(item.gamma, 4)}</span><span>{fmt(item.vega, 4)}</span>
-                </div>
-              ))}
-            </div>
-          ) : <div className="empty-state">No positions yet — once authenticated Deribit account sync is active, live option positions will appear here.</div>}
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Open positions</h3><div className="muted" style={{ fontSize: 12 }}>Read-only options positions once private account sync is active.</div></div><div className="chip">{positions.length}</div></div>
+          {positions.length ? (<div className="options-table"><div className="options-table-head options-table-head-wide"><span>Venue</span><span>Symbol</span><span>Size</span><span>Avg</span><span>Delta</span><span>Gamma</span><span>Vega</span></div>{positions.map((item) => (<div key={`${item.venue}:${item.symbol}`} className="options-table-row options-table-row-wide"><span>{item.venue}</span><span>{item.symbol}</span><span>{fmt(item.size, 4)}</span><span>{fmt(item.avgPrice, 4)}</span><span>{fmt(item.delta, 4)}</span><span>{fmt(item.gamma, 4)}</span><span>{fmt(item.vega, 4)}</span></div>))}</div>) : <div className="empty-state">No positions yet — once authenticated Deribit account sync is active, live option positions will appear here.</div>}
         </div>
       </div>
 
       <div className="data-rack data-rack-pro">
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Open orders</h3>
-              <div className="muted" style={{ fontSize: 12 }}>Read-only live order-state rail from the backend.</div>
-            </div>
-            <div className="chip">{openOrders.length}</div>
-          </div>
-          {openOrders.length ? (
-            <div className="options-table">
-              <div className="options-table-head options-table-head-wide">
-                <span>Venue</span><span>Symbol</span><span>Side</span><span>Price</span><span>Qty</span><span>Status</span><span>Created</span>
-              </div>
-              {openOrders.map((item) => (
-                <div key={`${item.venue}:${item.orderId}`} className="options-table-row options-table-row-wide">
-                  <span>{item.venue}</span><span>{item.symbol}</span><span>{item.side}</span><span>{fmt(item.price, 4)}</span><span>{fmt(item.quantity, 4)}</span><span>{item.status}</span><span>{fmtTs(item.timestamp)}</span>
-                </div>
-              ))}
-            </div>
-          ) : <div className="empty-state">No open orders yet — this panel is waiting for authenticated Deribit order-state sync.</div>}
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Open orders</h3><div className="muted" style={{ fontSize: 12 }}>Read-only live order-state rail from the backend.</div></div><div className="chip">{openOrders.length}</div></div>
+          {openOrders.length ? (<div className="options-table"><div className="options-table-head options-table-head-wide"><span>Venue</span><span>Symbol</span><span>Side</span><span>Price</span><span>Qty</span><span>Status</span><span>Created</span></div>{openOrders.map((item) => (<div key={`${item.venue}:${item.orderId}`} className="options-table-row options-table-row-wide"><span>{item.venue}</span><span>{item.symbol}</span><span>{item.side}</span><span>{fmt(item.price, 4)}</span><span>{fmt(item.quantity, 4)}</span><span>{item.status}</span><span>{fmtTs(item.timestamp)}</span></div>))}</div>) : <div className="empty-state">No open orders yet — this panel is waiting for authenticated Deribit order-state sync.</div>}
         </div>
-
         <div className="card">
-          <div className="row" style={{ marginBottom: 12 }}>
-            <div>
-              <h3>Recent fills</h3>
-              <div className="muted" style={{ fontSize: 12 }}>Read-only fill history rail for operator audit and later PnL tracking.</div>
-            </div>
-            <div className="chip">{fills.length}</div>
-          </div>
-          {fills.length ? (
-            <div className="options-table">
-              <div className="options-table-head options-table-head-wide">
-                <span>Venue</span><span>Symbol</span><span>Side</span><span>Price</span><span>Qty</span><span>Fee</span><span>Time</span>
-              </div>
-              {fills.map((item) => (
-                <div key={`${item.venue}:${item.fillId}`} className="options-table-row options-table-row-wide">
-                  <span>{item.venue}</span><span>{item.symbol}</span><span>{item.side}</span><span>{fmt(item.price, 4)}</span><span>{fmt(item.quantity, 4)}</span><span>{fmt(item.fee, 6)}</span><span>{fmtTs(item.timestamp)}</span>
-                </div>
-              ))}
-            </div>
-          ) : <div className="empty-state">No fills yet — once Deribit private trade history is available, recent option fills will appear here.</div>}
+          <div className="row" style={{ marginBottom: 12 }}><div><h3>Recent fills</h3><div className="muted" style={{ fontSize: 12 }}>Read-only fill history rail for operator audit and later PnL tracking.</div></div><div className="chip">{fills.length}</div></div>
+          {fills.length ? (<div className="options-table"><div className="options-table-head options-table-head-wide"><span>Venue</span><span>Symbol</span><span>Side</span><span>Price</span><span>Qty</span><span>Fee</span><span>Time</span></div>{fills.map((item) => (<div key={`${item.venue}:${item.fillId}`} className="options-table-row options-table-row-wide"><span>{item.venue}</span><span>{item.symbol}</span><span>{item.side}</span><span>{fmt(item.price, 4)}</span><span>{fmt(item.quantity, 4)}</span><span>{fmt(item.fee, 6)}</span><span>{fmtTs(item.timestamp)}</span></div>))}</div>) : <div className="empty-state">No fills yet — once Deribit private trade history is available, recent option fills will appear here.</div>}
         </div>
       </div>
     </div>

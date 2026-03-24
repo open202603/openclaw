@@ -5,6 +5,7 @@ import { registerHealthRoutes } from './modules/health/routes.js';
 import { registerMarketRoutes } from './modules/markets/routes.js';
 import { registerOptionsAccountDataRoutes } from './modules/options/account-data-routes.js';
 import { registerOptionsAccountRoutes } from './modules/options/account-routes.js';
+import { registerOptionsRiskRoutes } from './modules/options/risk-routes.js';
 import { registerOptionsRoutes } from './modules/options/routes.js';
 import { registerOrderRoutes } from './modules/orders/routes.js';
 import { registerPortfolioRoutes } from './modules/portfolio/routes.js';
@@ -32,6 +33,7 @@ registerPortfolioRoutes(app);
 registerOptionsRoutes(app);
 registerOptionsAccountRoutes(app);
 registerOptionsAccountDataRoutes(app);
+registerOptionsRiskRoutes(app);
 registerWsRoutes(app);
 
 const port = Number(process.env.PORT ?? 4000);

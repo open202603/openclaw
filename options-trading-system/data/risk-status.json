@@ -1,0 +1,16 @@
+{
+  "generatedAt": 1774340108664,
+  "executionMode": "paper",
+  "killSwitchEnabled": false,
+  "limits": {
+    "maxDelta": 5,
+    "maxVega": 10000,
+    "maxOpenOrders": 200,
+    "maxOrderNotional": 50000,
+    "maxDailyLoss": 10000,
+    "killSwitchEnabled": false
+  },
+  "executionState": {
+    "openOrderCount": 0
+  }
+}

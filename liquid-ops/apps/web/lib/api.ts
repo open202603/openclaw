@@ -136,3 +136,20 @@ export async function fetchOptionsAccountData() {
     fills: Array<{ venue: string; fillId: string; orderId: string; symbol: string; side: 'buy' | 'sell'; price: number; quantity: number; fee?: number; timestamp: number }>;
   }>('/options/account-data');
 }
+
+export async function fetchOptionsRiskStatus() {
+  return getJson<{
+    generatedAt: number;
+    executionMode: string;
+    killSwitchEnabled: boolean;
+    limits: {
+      maxDelta: number;
+      maxVega: number;
+      maxOpenOrders: number;
+      maxOrderNotional: number;
+      maxDailyLoss: number;
+      killSwitchEnabled: boolean;
+    };
+    executionState: { openOrderCount: number };
+  }>('/options/risk-status');
+}

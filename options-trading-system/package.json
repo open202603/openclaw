@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "export:live": "node scripts/export-live-data.mjs",
     "export:readiness": "node scripts/export-account-readiness.mjs",
-    "export:account": "node scripts/export-account-data.mjs"
+    "export:account": "node scripts/export-account-data.mjs",
+    "export:risk": "node scripts/export-risk-status.mjs"
   },
   "dependencies": {
     "zod": "^3.24.2"

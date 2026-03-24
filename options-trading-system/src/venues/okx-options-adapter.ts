@@ -1,12 +1,26 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
-import { sampleOkxInstrument } from './sample-instruments.js';
+import { normalizeOkxOptionInstrument } from '../core/normalizers.js';
+import { getJson } from '../utils/http.js';
 
 export class OkxOptionsAdapter implements VenueAdapter {
   readonly venue = 'okx-options' as const;
 
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
-    return [sampleOkxInstrument];
+    const payload = await getJson<{
+      data: Array<{
+        instId: string;
+        uly: string;
+        settleCcy: string;
+        expTime: string;
+        stk: string;
+        optType: string;
+        tickSz?: string;
+        lotSz?: string;
+      }>;
+    }>('https://www.okx.com/api/v5/public/instruments?instType=OPTION&uly=BTC-USD');
+
+    return payload.data.slice(0, 50).map(normalizeOkxOptionInstrument);
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {

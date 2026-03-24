@@ -43,6 +43,9 @@ export function normalizeBinanceOptionInstrument(raw: {
   expiryDate: number;
   strikePrice: string | number;
   side: string;
+  contractMultiplier?: string | number;
+  tickSize?: string | number;
+  lotSize?: string | number;
 }): NormalizedOptionInstrument {
   return normalizeInstrument({
     venue: 'binance-options',
@@ -53,6 +56,9 @@ export function normalizeBinanceOptionInstrument(raw: {
     expiryTs: raw.expiryDate,
     strike: Number(raw.strikePrice),
     optionSide: raw.side,
+    contractMultiplier: raw.contractMultiplier ? Number(raw.contractMultiplier) : undefined,
+    tickSize: raw.tickSize ? Number(raw.tickSize) : undefined,
+    lotSize: raw.lotSize ? Number(raw.lotSize) : undefined,
   });
 }
 

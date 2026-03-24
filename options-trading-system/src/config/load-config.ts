@@ -5,6 +5,7 @@ const envSchema = z.object({
   MAX_DELTA: z.coerce.number().default(5),
   MAX_VEGA: z.coerce.number().default(10000),
   MAX_OPEN_ORDERS: z.coerce.number().default(200),
+  MARKET_DATA_REFRESH_MS: z.coerce.number().default(30000),
 });
 
 export function loadConfig() {
@@ -12,6 +13,7 @@ export function loadConfig() {
 
   return {
     executionMode: env.EXECUTION_MODE,
+    marketDataRefreshMs: env.MARKET_DATA_REFRESH_MS,
     risk: {
       maxDelta: env.MAX_DELTA,
       maxVega: env.MAX_VEGA,

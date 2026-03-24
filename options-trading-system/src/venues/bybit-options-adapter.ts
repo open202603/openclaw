@@ -27,6 +27,10 @@ export class BybitOptionsAdapter implements VenueAdapter {
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
+    await this.refreshMarketData(onSnapshot);
+  }
+
+  async refreshMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
     const payload = await getJson<{
       result: {
         list: Array<{

@@ -25,6 +25,10 @@ export class OkxOptionsAdapter implements VenueAdapter {
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
+    await this.refreshMarketData(onSnapshot);
+  }
+
+  async refreshMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
     const payload = await getJson<{
       data: Array<{
         instId: string;

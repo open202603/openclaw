@@ -12,6 +12,7 @@ export interface VenueAdapter {
   readonly venue: Venue;
   loadInstruments(): Promise<NormalizedOptionInstrument[]>;
   connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void>;
+  refreshMarketData?(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void>;
   syncBalances(): Promise<VenueBalance[]>;
   syncPositions(): Promise<VenuePosition[]>;
   placeOrder(request: PlaceOrderRequest): Promise<{ orderId: string }>;

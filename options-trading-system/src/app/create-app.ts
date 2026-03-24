@@ -22,7 +22,7 @@ export function createApp() {
   ];
 
   const instrumentRegistry = new InstrumentRegistry(adapters);
-  const marketDataService = new MarketDataService(adapters);
+  const marketDataService = new MarketDataService(adapters, config.marketDataRefreshMs);
   const accountService = new AccountService(adapters);
   const riskEngine = new RiskEngine(config.risk);
   const executionService = new ExecutionService({ mode: config.executionMode, adapters, riskEngine });
@@ -36,6 +36,7 @@ export function createApp() {
     async start() {
       console.log('[app] starting options trading system');
       console.log('[app] execution mode =', config.executionMode);
+      console.log('[app] market data refresh ms =', config.marketDataRefreshMs);
       console.log('[app] venues =', adapters.map((adapter) => adapter.venue).join(', '));
 
       await instrumentRegistry.loadAll();

@@ -1,5 +1,6 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
+import { normalizeBinanceMark } from '../core/market-normalizers.js';
 import { normalizeBinanceOptionInstrument } from '../core/normalizers.js';
 import { getJson } from '../utils/http.js';
 
@@ -40,18 +41,21 @@ export class BinanceOptionsAdapter implements VenueAdapter {
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
-    onSnapshot({
-      venue: this.venue,
-      symbol: 'BTC-TEST',
-      bidPrice: null,
-      askPrice: null,
-      bidSize: null,
-      askSize: null,
-      markPrice: null,
-      indexPrice: null,
-      impliedVol: null,
-      timestamp: Date.now(),
-    });
+    const payload = await getJson<Array<{
+      symbol: string;
+      markPrice: string;
+      markIV?: string;
+      delta?: string;
+      gamma?: string;
+      vega?: string;
+      theta?: string;
+    }>>('https://eapi.binance.com/eapi/v1/mark');
+
+    payload
+      .filter((item) => item.symbol.startsWith('BTC-'))
+      .slice(0, 50)
+      .map(normalizeBinanceMark)
+      .forEach(onSnapshot);
   }
 
   async syncBalances(): Promise<VenueBalance[]> {

@@ -14,6 +14,7 @@ export class MarketDataService {
     }
 
     console.log('[market-data] adapters connected:', this.adapters.map((adapter) => adapter.venue).join(', '));
+    console.log('[market-data] snapshots loaded:', this.snapshots.size);
   }
 
   getSnapshot(key: string) {

@@ -1,5 +1,6 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
+import { normalizeDeribitBookSummary } from '../core/market-normalizers.js';
 import { normalizeDeribitOptionInstrument } from '../core/normalizers.js';
 import { getJson } from '../utils/http.js';
 
@@ -26,18 +27,19 @@ export class DeribitOptionsAdapter implements VenueAdapter {
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
-    onSnapshot({
-      venue: this.venue,
-      symbol: 'BTC-TEST',
-      bidPrice: null,
-      askPrice: null,
-      bidSize: null,
-      askSize: null,
-      markPrice: null,
-      indexPrice: null,
-      impliedVol: null,
-      timestamp: Date.now(),
-    });
+    const payload = await getJson<{
+      result: Array<{
+        instrument_name: string;
+        bid_price?: number;
+        ask_price?: number;
+        mark_price?: number;
+        mark_iv?: number;
+        underlying_price?: number;
+        creation_timestamp?: number;
+      }>;
+    }>('https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option');
+
+    payload.result.slice(0, 50).map(normalizeDeribitBookSummary).forEach(onSnapshot);
   }
 
   async syncBalances(): Promise<VenueBalance[]> {

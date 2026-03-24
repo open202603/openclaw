@@ -1,6 +1,7 @@
 import { loadConfig } from '../config/load-config.js';
 import { AccountService } from '../services/account-service.js';
 import { ExecutionService } from '../services/execution-service.js';
+import { InstrumentRegistry } from '../services/instrument-registry.js';
 import { MarketDataService } from '../services/market-data-service.js';
 import { RiskEngine } from '../services/risk-engine.js';
 import { ArbitrageStrategy } from '../strategies/arbitrage-strategy.js';
@@ -20,6 +21,7 @@ export function createApp() {
     new BybitOptionsAdapter(),
   ];
 
+  const instrumentRegistry = new InstrumentRegistry(adapters);
   const marketDataService = new MarketDataService(adapters);
   const accountService = new AccountService(adapters);
   const riskEngine = new RiskEngine(config.risk);
@@ -36,6 +38,7 @@ export function createApp() {
       console.log('[app] execution mode =', config.executionMode);
       console.log('[app] venues =', adapters.map((adapter) => adapter.venue).join(', '));
 
+      await instrumentRegistry.loadAll();
       await marketDataService.start();
       await accountService.start();
 

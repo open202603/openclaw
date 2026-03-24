@@ -1,11 +1,12 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
+import { sampleBybitInstrument } from './sample-instruments.js';
 
 export class BybitOptionsAdapter implements VenueAdapter {
   readonly venue = 'bybit-options' as const;
 
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
-    return [];
+    return [sampleBybitInstrument];
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {

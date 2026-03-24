@@ -1,11 +1,12 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
+import { sampleOkxInstrument } from './sample-instruments.js';
 
 export class OkxOptionsAdapter implements VenueAdapter {
   readonly venue = 'okx-options' as const;
 
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
-    return [];
+    return [sampleOkxInstrument];
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {

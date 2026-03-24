@@ -1,11 +1,12 @@
 import type { VenueAdapter } from '../core/venue-adapter.js';
 import type { CancelOrderRequest, MarketSnapshot, NormalizedOptionInstrument, PlaceOrderRequest, VenueBalance, VenuePosition } from '../core/types.js';
+import { sampleDeribitInstrument } from './sample-instruments.js';
 
 export class DeribitOptionsAdapter implements VenueAdapter {
   readonly venue = 'deribit' as const;
 
   async loadInstruments(): Promise<NormalizedOptionInstrument[]> {
-    return [];
+    return [sampleDeribitInstrument];
   }
 
   async connectMarketData(onSnapshot: (snapshot: MarketSnapshot) => void): Promise<void> {
